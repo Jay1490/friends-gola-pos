@@ -10,7 +10,9 @@ router.post('/login', async (req, res) => {
 
     const settings = await Settings.findOne();
     if (!settings) return res.status(500).json({ success: false, message: 'Settings not configured' });
-
+    // 🔍 DEBUG LOGS
+    console.log("Entered PIN:", pin);
+    console.log("DB PIN:", settings.ownerPin);
     if (pin !== settings.ownerPin) {
       return res.status(401).json({ success: false, message: 'Wrong PIN' });
     }

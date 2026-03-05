@@ -150,9 +150,9 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS:10000 })
       ]);
     }
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server → http://localhost:${PORT}`);
-      console.log(`✅ Edit order route ACTIVE: PUT /api/orders/:id\n`);
-    });
+    // app.listen(PORT, () => {
+    //   console.log(`🚀 Server → http://localhost:${PORT}`);
+    //   console.log(`✅ Edit order route ACTIVE: PUT /api/orders/:id\n`);
+    // });
   })
   .catch(err => { console.error('❌ MongoDB FAILED:', err.message); process.exit(1); });
