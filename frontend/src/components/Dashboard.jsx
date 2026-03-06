@@ -3,10 +3,9 @@ import toast from 'react-hot-toast';
 import { expensesAPI } from '../services/api';
 
 const fc = (n) => `₹${Number(n).toFixed(0)}`;
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const CATS   = ['Ingredients','Utilities','Rent','Salary','Equipment','Marketing','Other'];
-const CAT_EMOJI = { Ingredients:'🥬', Utilities:'💡', Rent:'🏠', Salary:'👨‍💼', Equipment:'🔧', Marketing:'📣', Other:'📦' };
-const CAT_COLOR = { Ingredients:'#4caf50', Utilities:'#ff9800', Rent:'#9c27b0', Salary:'#2196f3', Equipment:'#f44336', Marketing:'#e91e63', Other:'#607d8b' };
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const CATS = ['Colours', 'Toppings', 'Baraf', 'Other'];
+const CAT_EMOJI = { Colours:'🎨', Toppings:'🧁', Baraf:'🧊', Other:'📦' };
+const CAT_COLOR = { Colours:'#e91e63', Toppings:'#ff9800', Baraf:'#2196f3', Other:'#607d8b' };
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
