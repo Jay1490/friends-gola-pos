@@ -29,8 +29,8 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { title, amount, category, note, date } = req.body;
-    if (!title || !amount || !date) {
-      return res.status(400).json({ success: false, message: 'Title, amount and date are required' });
+    if (!title || !amount || !date || !category) {
+      return res.status(400).json({ success: false, message: 'Title, amount, date and category are required' });
     }
     const expense = await Expense.create({ title, amount, category, note, date });
     res.status(201).json({ success: true, data: expense });

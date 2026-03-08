@@ -318,7 +318,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label style={{ fontSize:11, color:'#7a6a5a', display:'block', marginBottom:8, fontWeight:600 }}>CATEGORY</label>
+                <label style={{ fontSize:11, color:'#7a6a5a', display:'block', marginBottom:8, fontWeight:600 }}>CATEGORY *</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                   {CATS.map(cat => (
                     <button key={cat} type="button" onClick={() => setFCategory(cat)} style={{

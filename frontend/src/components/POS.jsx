@@ -136,7 +136,7 @@ export default function POS({ onOrderPlaced }) {
         </div>
 
         {/* Product Grid */}
-        <div style={{ flex:1, overflowY:'auto', padding:12, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(120px, 1fr))', gap:10, alignContent:'start' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 12px 70px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(120px, 1fr))', gap:10, alignContent:'start' }}>
           {filtered.length === 0 && (
             <div style={{ gridColumn:'1/-1', textAlign:'center', paddingTop:60, color:'#b0a090' }}>
               <div style={{ fontSize:40, marginBottom:10 }}>🔍</div>

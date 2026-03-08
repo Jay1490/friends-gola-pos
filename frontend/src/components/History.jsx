@@ -164,7 +164,7 @@ export default function History({ onOrderEdited }) {
         )}
 
         {/* Orders List */}
-        <div style={{ flex:1, overflowY:'auto', padding:'clamp(12px,3vw,20px)' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 12px 70px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, flexWrap:'wrap', gap:8 }}>
             <h3 style={{ margin:0, color:'#3d2a1a', fontSize:16, fontFamily:"'Playfair Display',Georgia,serif" }}>
               {fDate(selectedDate + 'T00:00:00')}
