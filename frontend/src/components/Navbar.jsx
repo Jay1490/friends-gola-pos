@@ -121,7 +121,7 @@ export default function Navbar({ view, onNav, revenueRefreshKey }) {
           color: '#ff9999', borderTop: '2px solid transparent',
         }}>
           <span style={{ fontSize: 20 }}>🔒</span>
-          <span style={{ fontSize: 10, fontWeight: 600 }}>Out</span>
+          <span style={{ fontSize: 10, fontWeight: 600 }}>Logout</span>
         </button>
       </nav>
 

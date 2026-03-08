@@ -34,7 +34,7 @@ orderSchema.pre('save', async function (next) {
     const count = await mongoose.model('Order').countDocuments();
     const now = new Date();
     const yymmdd = now.toISOString().slice(2, 10).replace(/-/g, '');
-    this.billNo = `JC${yymmdd}${String(count + 1).padStart(4, '0')}`;
+    this.billNo = `FG${yymmdd}${String(count + 1).padStart(4, '0')}`;
   }
   if (!this.date) {
     this.date = new Date().toISOString().split('T')[0];

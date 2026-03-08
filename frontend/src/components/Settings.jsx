@@ -107,7 +107,7 @@ export default function Settings() {
           cursor: saving ? 'not-allowed' : 'pointer',
           fontFamily:"'DM Sans',sans-serif",
           boxShadow:'0 6px 20px rgba(193,127,60,0.4)',
-          marginBottom:32,
+          marginBottom:60,
         }}>
           {saving ? '⏳ Saving...' : '💾 Save Settings'}
         </button>

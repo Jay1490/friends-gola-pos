@@ -193,7 +193,7 @@ export default function History({ onOrderEdited }) {
                     <span style={{ marginLeft:8, fontSize:11, color:'#c0504d', background:'#ffe5e5', padding:'2px 8px', borderRadius:12 }}>Cancelled</span>
                   )}
                   <span style={{ fontSize:12, color:'#b0a090', marginLeft:8 }}>{fTime(order.createdAt)}</span>
-                  {order.note && <div style={{ fontSize:11, color:'#c9a96e', marginTop:4 }}>📝 {order.note}</div>}
+                  {order.note && <div style={{ fontSize:11, color:'#f14f4f', marginTop:4 }}>📝 {order.note}</div>}
                 </div>
 
                 {/* Edit button */}
@@ -201,9 +201,9 @@ export default function History({ onOrderEdited }) {
                   <button onClick={() => openEdit(order)} style={{
                     padding:'7px 14px', borderRadius:10,
                     border:'1.5px solid #c17f3c', background:'#fff8ef',
-                    color:'#c17f3c', fontSize:12, fontWeight:700,
+                    color:'#c17f3c', fontSize:8, fontWeight:700,
                     cursor:'pointer', fontFamily:"'DM Sans',sans-serif", flexShrink:0,
-                  }}>✏️ Edit Order</button>
+                  }}>✏️</button>
                 )}
               </div>
 
@@ -252,9 +252,9 @@ export default function History({ onOrderEdited }) {
               {/* Item rows */}
               {editItems.map((item, idx) => (
                 <div key={idx} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 8px', borderBottom:'1px solid #f5efe8' }}>
-                  <span style={{ fontSize:22, flexShrink:0 }}>{item.emoji}</span>
+                  <span style={{ fontSize:18, flexShrink:0 }}>{item.emoji}</span>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a', marginBottom:4 }}>{item.name}</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:'#3d2a1a', marginBottom:4 }}>{item.name}</div>
                     {/* Editable price */}
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ fontSize:11, color:'#b0a090' }}>₹</span>
@@ -262,24 +262,24 @@ export default function History({ onOrderEdited }) {
                         type="number"
                         value={item.price}
                         onChange={e => updateEditPrice(idx, e.target.value)}
-                        style={{ width:70, padding:'3px 6px', borderRadius:6, border:'1px solid #e0d5c8', fontSize:12, outline:'none', fontFamily:"'DM Sans',sans-serif", color:'#c17f3c', fontWeight:700 }}
+                        style={{ width:35, padding:'3px 6px', borderRadius:5, border:'1px solid #e0d5c8', fontSize:12, outline:'none', fontFamily:"'DM Sans',sans-serif", color:'#c17f3c', fontWeight:700 }}
                       />
                       <span style={{ fontSize:11, color:'#b0a090' }}>per item</span>
                     </div>
                   </div>
 
                   {/* Qty controls */}
-                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                    <button onClick={() => updateEditQty(idx, -1)} style={{ width:30, height:30, borderRadius:8, border:'1.5px solid #e0d5c8', background:'#faf8f5', cursor:'pointer', fontSize:18, fontWeight:700, color:'#c17f3c', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
-                    <span style={{ fontSize:14, fontWeight:700, minWidth:22, textAlign:'center' }}>{item.qty}</span>
-                    <button onClick={() => updateEditQty(idx, 1)} style={{ width:30, height:30, borderRadius:8, border:'none', background:'#c17f3c', cursor:'pointer', fontSize:18, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
+                  <div style={{ display:'flex', alignItems:'center', gap:0, flexShrink:0 }}>
+                    <button onClick={() => updateEditQty(idx, -1)} style={{ width:20, height:20, borderRadius:4, border:'0.5px solid #e0d5c8', background:'#faf8f5', cursor:'pointer', fontSize:12, fontWeight:700, color:'#c17f3c', display:'flex', alignItems:'center', justifyContent:'center' }}>−</button>
+                    <span style={{ fontSize:12, fontWeight:700, minWidth:22, textAlign:'center' }}>{item.qty}</span>
+                    <button onClick={() => updateEditQty(idx, 1)} style={{ width:20, height:20, borderRadius:4, border:'none', background:'#c17f3c', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
                   </div>
 
                   {/* Item total */}
-                  <div style={{ fontSize:13, fontWeight:700, color:'#3d1a00', minWidth:52, textAlign:'right' }}>{fc(item.price * item.qty)}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:'#3d1a00', minWidth:52, textAlign:'right' }}>{fc(item.price * item.qty)}</div>
 
                   {/* Remove */}
-                  <button onClick={() => removeEditItem(idx)} style={{ width:28, height:28, borderRadius:8, border:'1px solid #f0d0d0', background:'transparent', color:'#c0504d', cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+                  <button onClick={() => removeEditItem(idx)} style={{ width:20, height:20, borderRadius:4, border:'0.5px solid #f0d0d0', background:'transparent', color:'#c0504d', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
                 </div>
               ))}
 

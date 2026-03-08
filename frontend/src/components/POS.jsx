@@ -200,7 +200,7 @@ export default function POS({ onOrderPlaced }) {
       {/* ── Mobile Cart Drawer ── */}
       {showCart && (
         <div className="mobile-drawer-overlay" style={{ position:'fixed', inset:0, zIndex:950, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)' }} onClick={() => setShowCart(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ position:'absolute', bottom:0, left:0, right:0, background:'#fff', borderRadius:'24px 24px 0 0', maxHeight:'92dvh', display:'flex', flexDirection:'column', boxShadow:'0 -10px 40px rgba(0,0,0,0.25)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ position:'absolute', bottom:55, left:0, right:0, background:'#fff', borderRadius:'24px 24px 0 0', maxHeight:'92dvh', display:'flex', flexDirection:'column', boxShadow:'0 -10px 40px rgba(0,0,0,0.25)' }}>
             <div style={{ padding:'12px 20px', borderBottom:'1px solid #e8e0d5', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <span style={{ fontWeight:700, color:'#3d1a00', fontSize:16 }}>🧾 Your Order</span>
               <button onClick={() => setShowCart(false)} style={{ background:'#f0ebe4', border:'none', borderRadius:10, padding:'6px 12px', cursor:'pointer', fontSize:16, color:'#7a6a5a' }}>✕</button>
