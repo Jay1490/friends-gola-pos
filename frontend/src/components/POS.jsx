@@ -100,7 +100,7 @@ export default function POS({ onOrderPlaced }) {
   if (loading) {
     return (
       <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', flexDirection:'column', gap:16, color:'#c9a96e' }}>
-        <div style={{ fontSize:48, animation:'spin 1s linear infinite' }}>☕</div>
+        <div style={{ fontSize:48, animation:'spin 1s linear infinite' }}>🍨</div>
         <p style={{ fontFamily:"'DM Sans',sans-serif" }}>Loading menu...</p>
         <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       </div>

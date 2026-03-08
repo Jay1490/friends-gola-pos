@@ -254,14 +254,13 @@ export default function Dashboard() {
                   background:'#f0fff0', color:'#2e7d32',
                   fontWeight:700, fontSize:13, cursor:'pointer',
                   fontFamily:"'DM Sans',sans-serif",
-                }}>📥 Export CSV</button>
+                }}>📥</button>
                 <button onClick={openAdd} style={{
-                  padding:'8px 16px', borderRadius:10, border:'none',
-                  background:'linear-gradient(135deg,#c17f3c,#e8a045)',
-                  color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer',
+                  padding:'8px 14px', borderRadius:10, border:'1.5px solid #9500ff',
+                  background:'#b088f01c', color:'#893fe3',
+                  fontWeight:700, fontSize:13, cursor:'pointer',
                   fontFamily:"'DM Sans',sans-serif",
-                  boxShadow:'0 3px 10px rgba(193,127,60,0.35)',
-                }}>+ Add Expense</button>
+                }}>➕</button>
               </div>
             </div>
 
