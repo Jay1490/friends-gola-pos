@@ -1,4 +1,4 @@
-# ☕ JAY CAFÉ — Full-Stack POS System
+# 🍨 JAY CAFÉ — Full-Stack POS System
 
 **Frontend:** React + Vite → Vercel  
 **Backend:** Node.js + Express → Railway / Render  

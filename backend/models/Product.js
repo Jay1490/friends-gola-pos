@@ -7,10 +7,10 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['Beverages', 'Snacks', 'Breakfast', 'Desserts', 'Meals', 'Other'],
-      default: 'Other',
+      enum: ['Premium Gola', 'Classic Gola', 'Drinks', 'Extras', 'Other'],
+      default: 'Classic Gola',
     },
-    emoji:    { type: String, default: '🍽️' },
+    emoji:    { type: String, default: '🧊' },
     active:   { type: Boolean, default: true },
     sortOrder:{ type: Number, default: 0 },
   },

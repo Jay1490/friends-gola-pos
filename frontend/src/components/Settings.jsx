@@ -86,7 +86,7 @@ export default function Settings() {
 
       <div style={{ maxWidth:560 }}>
 
-        <Section title="☕ Café Information">
+        <Section title="🍨 Café Information">
           <Field label="CAFÉ NAME *"          value={cafeName} onChange={setCafeName} />
           <Field label="ADDRESS"              value={address}  onChange={setAddress}  placeholder="Near Main Square, City" />
           <Field label="PHONE"                value={phone}    onChange={setPhone}    placeholder="+91 98765 43210" />

@@ -30,7 +30,7 @@ export default function Login() {
       setLoading(true);
       try {
         await login(np);
-        toast.success('Welcome back! ☕');
+        toast.success('Welcome back! 🍨');
       } catch (err) {
         const msg = err.response?.data?.message || 'Wrong PIN';
         toast.error(msg);
@@ -51,7 +51,7 @@ export default function Login() {
 
       <div style={{textAlign:'center',position:'relative',zIndex:1,width:'100%',maxWidth:340}}>
         {/* Logo */}
-        <div style={{fontSize:64,marginBottom:8,filter:'drop-shadow(0 4px 16px rgba(245,200,66,0.4))'}}>☕</div>
+        <div style={{fontSize:64,marginBottom:8,filter:'drop-shadow(0 4px 16px rgba(245,200,66,0.4))'}}>🍨</div>
         <h1 style={{
           fontFamily:"'Playfair Display', Georgia, serif",
           fontSize:'clamp(28px, 8vw, 42px)',

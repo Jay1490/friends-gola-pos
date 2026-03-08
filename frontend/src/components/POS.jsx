@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { productsAPI, ordersAPI, settingsAPI } from '../services/api';
 // import { printBill } from '../services/print'; // 🖨️ PRINT DISABLED
 
-const CATS = ['All', 'Beverages', 'Snacks', 'Breakfast', 'Desserts', 'Meals'];
+const CATS = ['All', 'Premium Gola', 'Classic Gola', 'Drinks', 'Extras', 'Other'];
 const fc = (n) => `₹${Number(n).toFixed(2)}`;
 
 export default function POS({ onOrderPlaced }) {
@@ -317,4 +317,3 @@ function BillPanel({ cart, note, setNote, subtotal, total, cartCount, onUpdateQt
     </>
   );
 }
-

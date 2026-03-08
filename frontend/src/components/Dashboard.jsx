@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import { expensesAPI } from '../services/api';
 
 const fc = (n) => `₹${Number(n).toFixed(0)}`;
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const CATS = ['Colours', 'Toppings', 'Baraf', 'Other'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CATS     = ['Colours', 'Toppings', 'Baraf', 'Other'];
 const CAT_EMOJI = { Colours:'🎨', Toppings:'🧁', Baraf:'🧊', Other:'📦' };
 const CAT_COLOR = { Colours:'#e91e63', Toppings:'#ff9800', Baraf:'#2196f3', Other:'#607d8b' };
 
@@ -131,6 +132,28 @@ export default function Dashboard() {
     }
   };
 
+  // ── Export expenses to CSV ───────────────────────────────────────────────────
+  const exportCSV = () => {
+    if (!expenses.length) return toast.error('No expenses to export');
+    const headers = ['Date', 'Title', 'Category', 'Amount (₹)', 'Note'];
+    const rows = expenses.map(e => [
+      e.date,
+      `"${e.title.replace(/"/g, '""')}"`,
+      e.category,
+      e.amount,
+      `"${(e.note || '').replace(/"/g, '""')}"`,
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `expenses-${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`✅ Exported ${expenses.length} expenses`);
+  };
+
   // Month navigation
   const changeMonth = (delta) => {
     const [y, m] = month.split('-').map(Number);
@@ -225,13 +248,21 @@ export default function Dashboard() {
           <div style={{ background:'#fff', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5', marginBottom:80 }}>
             <div style={{ padding:'14px 16px', borderBottom:'1px solid #e8e0d5', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:'#3d1a00' }}>💸 Expenses — {monthLabel}</h3>
-              <button onClick={openAdd} style={{
-                padding:'8px 16px', borderRadius:10, border:'none',
-                background:'linear-gradient(135deg,#c17f3c,#e8a045)',
-                color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer',
-                fontFamily:"'DM Sans',sans-serif",
-                boxShadow:'0 3px 10px rgba(193,127,60,0.35)',
-              }}>+ Add Expense</button>
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={exportCSV} style={{
+                  padding:'8px 14px', borderRadius:10, border:'1.5px solid #4caf50',
+                  background:'#f0fff0', color:'#2e7d32',
+                  fontWeight:700, fontSize:13, cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",
+                }}>📥 Export CSV</button>
+                <button onClick={openAdd} style={{
+                  padding:'8px 16px', borderRadius:10, border:'none',
+                  background:'linear-gradient(135deg,#c17f3c,#e8a045)',
+                  color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",
+                  boxShadow:'0 3px 10px rgba(193,127,60,0.35)',
+                }}>+ Add Expense</button>
+              </div>
             </div>
 
             {expenses.length === 0 ? (
