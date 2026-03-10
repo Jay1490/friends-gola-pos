@@ -10,7 +10,8 @@ const settingsSchema = new mongoose.Schema(
     gstEnabled: { type: Boolean, default: true },
     gstRate:    { type: Number, default: 5 },
     paperWidth: { type: String, enum: ['58mm', '80mm'], default: '58mm' },
-    ownerPin:   { type: String, default: '0000' },  // stored as plain, hashed on verify
+    ownerPin:   { type: String, default: '0000' },  
+    upiId:      { type: String, default: 'pateljaya1607-2@oksbi' }, // ✅ NEW
   },
   { timestamps: true }
 );

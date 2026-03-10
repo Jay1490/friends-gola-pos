@@ -1,46 +1,65 @@
-const router = require('express').Router();
+const express  = require('express');
+const router   = express.Router();
+const jwt      = require('jsonwebtoken');
 const Settings = require('../models/Settings');
-const auth = require('../middleware/auth');
 
-// GET /api/settings — public fields only (for bill header etc.)
+// ── Auth middleware ───────────────────────────────────────────────────────────
+const auth = (req, res, next) => {
+  const a = req.headers.authorization;
+  if (!a?.startsWith('Bearer ')) return res.status(401).json({ success:false, message:'Unauthorized' });
+  try { req.user = jwt.verify(a.split(' ')[1], process.env.JWT_SECRET); next(); }
+  catch { return res.status(401).json({ success:false, message:'Invalid token' }); }
+};
+
+// GET /api/settings  — public (used by POS to fetch upiId for QR)
 router.get('/', async (req, res) => {
   try {
-    const settings = await Settings.findOne().select('-ownerPin -__v');
-    if (!settings) return res.status(404).json({ success: false, message: 'Settings not found' });
-    res.json({ success: true, data: settings });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+    let s = await Settings.findOne();
+    if (!s) s = await Settings.create({});
+    // Return safe public fields only
+    res.json({ success:true, data: {
+      cafeName:   s.cafeName,
+      address:    s.address,
+      phone:      s.phone,
+      tagline:    s.tagline,
+      gstEnabled: s.gstEnabled,
+      gstRate:    s.gstRate,
+      paperWidth: s.paperWidth,
+      upiId:      s.upiId,
+    }});
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
-// GET /api/settings/full — all fields (auth required)
+// GET /api/settings/full  — auth required (includes ownerPin)
 router.get('/full', auth, async (req, res) => {
   try {
-    const settings = await Settings.findOne().select('-__v');
-    if (!settings) return res.status(404).json({ success: false, message: 'Settings not found' });
-    res.json({ success: true, data: settings });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+    let s = await Settings.findOne();
+    if (!s) s = await Settings.create({});
+    res.json({ success:true, data: s });
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
-// PUT /api/settings — update settings
+// PUT /api/settings  — auth required
 router.put('/', auth, async (req, res) => {
   try {
-    const allowed = ['cafeName', 'address', 'phone', 'tagline', 'gstEnabled', 'gstRate', 'paperWidth', 'ownerPin'];
-    const update = {};
-    allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
+    const { cafeName, address, phone, tagline, gstEnabled, gstRate, paperWidth, ownerPin, upiId } = req.body;
 
-    const settings = await Settings.findOneAndUpdate(
-      {},
-      { $set: update },
-      { new: true, upsert: true, runValidators: true }
-    ).select('-__v');
+    let s = await Settings.findOne();
+    if (!s) s = new Settings();
 
-    res.json({ success: true, data: settings });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
+    if (cafeName   !== undefined) s.cafeName   = cafeName;
+    if (address    !== undefined) s.address    = address;
+    if (phone      !== undefined) s.phone      = phone;
+    if (tagline    !== undefined) s.tagline    = tagline;
+    if (gstEnabled !== undefined) s.gstEnabled = gstEnabled;
+    if (gstRate    !== undefined) s.gstRate    = gstRate;
+    if (paperWidth !== undefined) s.paperWidth = paperWidth;
+    if (ownerPin   !== undefined) s.ownerPin   = ownerPin;
+    if (upiId      !== undefined) s.upiId      = upiId.trim(); // ✅ save upiId
+
+    await s.save();
+    res.json({ success:true, data: s });
+  } catch (err) { res.status(500).json({ success:false, message:err.message }); }
 });
 
 module.exports = router;
