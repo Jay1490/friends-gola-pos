@@ -107,7 +107,7 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS:10000 })
     // ✅ THIS WAS THE BUG — app.listen was commented out!
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`✅ All routes active including PUT /api/orders/:id\n`);
+      // console.log(`✅ All routes active including PUT /api/orders/:id\n`);
     });
   })
   .catch(err => {
