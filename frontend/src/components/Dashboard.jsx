@@ -9,7 +9,7 @@ const CAT_EMOJI = { Colours:'🎨', Toppings:'🧁', Baraf:'🧊', Other:'📦' 
 const CAT_COLOR = { Colours:'#e91e63', Toppings:'#ff9800', Baraf:'#2196f3', Other:'#607d8b' };
 
 const PAYERS = ['JP', 'Jenish', 'Urvish'];
-const PAYER_EMOJI = { JP:'🧑', Jenish:'👤', Urvish:'👤' };
+const PAYER_EMOJI = { JP:'🧑', Jenish:'👦', Urvish:'👨' };
 const PAYER_COLOR = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669' };
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
