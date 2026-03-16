@@ -10,7 +10,6 @@ router.get('/', auth, async (req, res) => {
     const filter = {};
 
     if (month) {
-      // month = "2026-03" → filter whole month
       filter.date = { $gte: `${month}-01`, $lte: `${month}-31` };
     } else if (from || to) {
       filter.date = {};
@@ -28,18 +27,18 @@ router.get('/', auth, async (req, res) => {
 // POST /api/expenses — add expense
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, amount, category, note, date } = req.body;
+    const { title, amount, category, note, date, paidBy } = req.body; // ← added paidBy
     if (!title || !amount || !date || !category) {
       return res.status(400).json({ success: false, message: 'Title, amount, date and category are required' });
     }
-    const expense = await Expense.create({ title, amount, category, note, date });
+    const expense = await Expense.create({ title, amount, category, note, date, paidBy }); // ← added paidBy
     res.status(201).json({ success: true, data: expense });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
 });
 
-// PUT /api/expenses/:id — edit expense
+// PUT /api/expenses/:id — edit expense (req.body passed directly, paidBy included automatically)
 router.put('/:id', auth, async (req, res) => {
   try {
     const expense = await Expense.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -77,13 +76,18 @@ router.get('/summary', auth, async (req, res) => {
     const totalIncome   = orders.reduce((s, o) => s + o.total, 0);
     const totalProfit   = totalIncome - totalExpenses;
 
-    // Group expenses by category
     const byCategory = expenses.reduce((acc, e) => {
       acc[e.category] = (acc[e.category] || 0) + e.amount;
       return acc;
     }, {});
 
-    // Daily income for chart (last 30 days)
+    // ← Breakdown of expenses per payer
+    const byPaidBy = expenses.reduce((acc, e) => {
+      const payer = e.paidBy || 'Me';
+      acc[payer] = (acc[payer] || 0) + e.amount;
+      return acc;
+    }, {});
+
     const dailyIncome = orders.reduce((acc, o) => {
       acc[o.date] = (acc[o.date] || 0) + o.total;
       return acc;
@@ -97,6 +101,7 @@ router.get('/summary', auth, async (req, res) => {
         totalProfit,
         totalOrders: orders.length,
         byCategory,
+        byPaidBy,   // ← added
         dailyIncome,
       },
     });

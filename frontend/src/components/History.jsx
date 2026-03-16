@@ -270,7 +270,7 @@ export default function History({ onOrderEdited }) {
         )}
 
         {/* Orders Area */}
-        <div style={{ flex:1, overflowY:'auto', padding:'clamp(12px,3vw,20px)' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 12px 75px' }}>
 
           {/* Date + Total */}
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, flexWrap:'wrap', gap:8 }}>
@@ -396,23 +396,23 @@ export default function History({ onOrderEdited }) {
 
             <div style={{ flex:1, overflowY:'auto', padding:16 }}>
               {editItems.map((item, idx) => (
-                <div key={idx} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 8px', borderBottom:'1px solid #f5efe8' }}>
-                  <span style={{ fontSize:22, flexShrink:0 }}>{item.emoji}</span>
+                <div key={idx} style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 8px', borderBottom:'1px solid #f5efe8' }}>
+                  <span style={{ fontSize:20, flexShrink:0 }}>{item.emoji}</span>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a', marginBottom:4 }}>{item.name}</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:'#3d2a1a', marginBottom:4 }}>{item.name}</div>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ fontSize:11, color:'#b0a090' }}>₹</span>
                       <input type="number" value={item.price} onChange={e => updateEditPrice(idx, e.target.value)}
-                        style={{ width:70, padding:'3px 6px', borderRadius:6, border:'1px solid #e0d5c8', fontSize:12, outline:'none', fontFamily:"'DM Sans',sans-serif", color:'#c17f3c', fontWeight:700 }} />
+                        style={{ width:32, padding:'2px 4px', borderRadius:6, border:'1px solid #e0d5c8', fontSize:10, outline:'none', fontFamily:"'DM Sans',sans-serif", color:'#c17f3c', fontWeight:700 }} />
                     </div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                    <button onClick={() => updateEditQty(idx,-1)} style={{ width:30,height:30,borderRadius:8,border:'1.5px solid #e0d5c8',background:'#faf8f5',cursor:'pointer',fontSize:18,fontWeight:700,color:'#c17f3c',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
-                    <span style={{ fontSize:14,fontWeight:700,minWidth:22,textAlign:'center' }}>{item.qty}</span>
-                    <button onClick={() => updateEditQty(idx,1)} style={{ width:30,height:30,borderRadius:8,border:'none',background:'#c17f3c',cursor:'pointer',fontSize:18,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                  <div style={{ display:'flex', alignItems:'center', flexShrink:0 }}>
+                    <button onClick={() => updateEditQty(idx,-1)} style={{ width:22,height:22,borderRadius:8,border:'1.5px solid #e0d5c8',background:'#faf8f5',cursor:'pointer',fontSize:20,fontWeight:700,color:'#c17f3c',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
+                    <span style={{ fontSize:12,fontWeight:700,minWidth:22,textAlign:'center' }}>{item.qty}</span>
+                    <button onClick={() => updateEditQty(idx,1)} style={{ width:22,height:22,borderRadius:8,border:'none',background:'#c17f3c',cursor:'pointer',fontSize:20,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
                   </div>
-                  <div style={{ fontSize:13,fontWeight:700,color:'#3d1a00',minWidth:52,textAlign:'right' }}>{fc(item.price*item.qty)}</div>
-                  <button onClick={() => removeEditItem(idx)} style={{ width:28,height:28,borderRadius:8,border:'1px solid #f0d0d0',background:'transparent',color:'#c0504d',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>×</button>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#3d1a00',textAlign:'right' }}>{fc(item.price*item.qty)}</div>
+                  <button onClick={() => removeEditItem(idx)} style={{ width:22,height:22,borderRadius:8,border:'1px solid #f0d0d0',background:'transparent',color:'#c0504d',cursor:'pointer',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>×</button>
                 </div>
               ))}
 
@@ -467,7 +467,7 @@ export default function History({ onOrderEdited }) {
                 <span style={{ fontSize:20,fontWeight:800,color:'#c17f3c' }}>Total: {fc(editTotal)}</span>
               </div>
               <div style={{ display:'flex',gap:10 }}>
-                <button onClick={saveEdit} disabled={saving||!editItems.length} style={{ flex:1,padding:'14px',borderRadius:12,border:'none',background:saving?'#888':'linear-gradient(135deg,#c17f3c,#e8a045)',color:'#fff',fontSize:15,fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:'0 4px 14px rgba(193,127,60,0.4)' }}>
+                <button onClick={saveEdit} disabled={saving||!editItems.length} style={{ flex:1,padding:'12px',borderRadius:12,border:'none',background:saving?'#888':'linear-gradient(135deg,#c17f3c,#e8a045)',color:'#fff',fontSize:14,fontWeight:700,cursor:saving?'not-allowed':'pointer',fontFamily:"'DM Sans',sans-serif",boxShadow:'0 4px 14px rgba(193,127,60,0.4)' }}>
                   {saving ? '⏳ Saving...' : '💾 Save Changes'}
                 </button>
                 <button onClick={closeEdit} style={{ padding:'14px 20px',borderRadius:12,border:'1.5px solid #e0d5c8',background:'transparent',color:'#7a6a5a',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontWeight:600 }}>Cancel</button>

@@ -8,6 +8,10 @@ const CATS     = ['Colours', 'Toppings', 'Baraf', 'Other'];
 const CAT_EMOJI = { Colours:'🎨', Toppings:'🧁', Baraf:'🧊', Other:'📦' };
 const CAT_COLOR = { Colours:'#e91e63', Toppings:'#ff9800', Baraf:'#2196f3', Other:'#607d8b' };
 
+const PAYERS = ['JP', 'Jenish', 'Urvish'];
+const PAYER_EMOJI = { JP:'🧑', Jenish:'👤', Urvish:'👤' };
+const PAYER_COLOR = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669' };
+
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 // ── Sub-components defined OUTSIDE to prevent focus loss ─────────────────────
@@ -23,6 +27,7 @@ function StatCard({ emoji, label, value, color, sub }) {
 }
 
 function ExpenseRow({ expense, onEdit, onDelete }) {
+  const payer = expense.paidBy || 'Me';
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 8px', borderBottom:'1px solid #f5efe8' }}>
       <div style={{ width:36, height:36, borderRadius:10, background: CAT_COLOR[expense.category] + '20', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
@@ -30,8 +35,12 @@ function ExpenseRow({ expense, onEdit, onDelete }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{expense.title}</div>
-        <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:2 }}>
+        <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:2, flexWrap:'wrap' }}>
           <span style={{ fontSize:10, background: CAT_COLOR[expense.category] + '20', color: CAT_COLOR[expense.category], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>{expense.category}</span>
+          {/* Paid By badge */}
+          <span style={{ fontSize:10, background: PAYER_COLOR[payer] + '18', color: PAYER_COLOR[payer], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
+            {PAYER_EMOJI[payer]} {payer}
+          </span>
           <span style={{ fontSize:11, color:'#b0a090' }}>{expense.date}</span>
           {expense.note && <span style={{ fontSize:11, color:'#c9a96e' }}>· {expense.note}</span>}
         </div>
@@ -54,12 +63,16 @@ export default function Dashboard() {
   const [showForm, setShowForm]     = useState(false);
   const [editingId, setEditingId]   = useState(null);
 
-  // Form fields (outside component avoids re-render focus bug)
+  // Paid By filter — null means "All"
+  const [filterPayer, setFilterPayer] = useState(null);
+
+  // Form fields
   const [fTitle,    setFTitle]    = useState('');
   const [fAmount,   setFAmount]   = useState('');
-  const [fCategory, setFCategory] = useState('Ingredients');
+  const [fCategory, setFCategory] = useState('Colours');
   const [fNote,     setFNote]     = useState('');
   const [fDate,     setFDate]     = useState(() => new Date().toISOString().split('T')[0]);
+  const [fPaidBy,   setFPaidBy]   = useState('Me');
   const [saving,    setSaving]    = useState(false);
 
   const load = async () => {
@@ -81,15 +94,16 @@ export default function Dashboard() {
   useEffect(() => { load(); }, [month]);
 
   const resetForm = () => {
-    setFTitle(''); setFAmount(''); setFCategory('Ingredients');
+    setFTitle(''); setFAmount(''); setFCategory('Colours');
     setFNote(''); setFDate(new Date().toISOString().split('T')[0]);
-    setEditingId(null); setShowForm(false);
+    setFPaidBy('Me'); setEditingId(null); setShowForm(false);
   };
 
   const openEdit = (exp) => {
     setFTitle(exp.title); setFAmount(String(exp.amount));
     setFCategory(exp.category); setFNote(exp.note || '');
-    setFDate(exp.date); setEditingId(exp._id);
+    setFDate(exp.date); setFPaidBy(exp.paidBy || 'Me');
+    setEditingId(exp._id);
     setShowForm(true);
     setTimeout(() => document.getElementById('expense-title-input')?.focus(), 100);
   };
@@ -105,11 +119,12 @@ export default function Dashboard() {
     if (!fAmount || isNaN(fAmount) || Number(fAmount) <= 0) return toast.error('Enter a valid amount');
     setSaving(true);
     try {
+      const payload = { title:fTitle, amount:Number(fAmount), category:fCategory, note:fNote, date:fDate, paidBy:fPaidBy };
       if (editingId) {
-        await expensesAPI.update(editingId, { title:fTitle, amount:Number(fAmount), category:fCategory, note:fNote, date:fDate });
+        await expensesAPI.update(editingId, payload);
         toast.success('✅ Expense updated!');
       } else {
-        await expensesAPI.create({ title:fTitle, amount:Number(fAmount), category:fCategory, note:fNote, date:fDate });
+        await expensesAPI.create(payload);
         toast.success('✅ Expense added!');
       }
       resetForm();
@@ -132,14 +147,14 @@ export default function Dashboard() {
     }
   };
 
-  // ── Export expenses to CSV ───────────────────────────────────────────────────
   const exportCSV = () => {
     if (!expenses.length) return toast.error('No expenses to export');
-    const headers = ['Date', 'Title', 'Category', 'Amount (₹)', 'Note'];
-    const rows = expenses.map(e => [
+    const headers = ['Date', 'Title', 'Category', 'Paid By', 'Amount (₹)', 'Note'];
+    const rows = filteredExpenses.map(e => [
       e.date,
       `"${e.title.replace(/"/g, '""')}"`,
       e.category,
+      e.paidBy || 'Me',
       e.amount,
       `"${(e.note || '').replace(/"/g, '""')}"`,
     ]);
@@ -148,13 +163,12 @@ export default function Dashboard() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `expenses-${month}.csv`;
+    a.download = `expenses-${month}${filterPayer ? `-${filterPayer}` : ''}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`✅ Exported ${expenses.length} expenses`);
+    toast.success(`✅ Exported ${filteredExpenses.length} expenses`);
   };
 
-  // Month navigation
   const changeMonth = (delta) => {
     const [y, m] = month.split('-').map(Number);
     const d = new Date(y, m - 1 + delta, 1);
@@ -163,6 +177,19 @@ export default function Dashboard() {
 
   const [y, m] = month.split('-').map(Number);
   const monthLabel = `${MONTHS[m - 1]} ${y}`;
+
+  // ── Client-side filter by payer ──────────────────────────────────────────
+  const filteredExpenses = filterPayer
+    ? expenses.filter(e => (e.paidBy || 'Me') === filterPayer)
+    : expenses;
+
+  const filteredTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
+
+  // Per-payer totals for the summary chips
+  const payerTotals = PAYERS.reduce((acc, p) => {
+    acc[p] = expenses.filter(e => (e.paidBy || 'Me') === p).reduce((s, e) => s + e.amount, 0);
+    return acc;
+  }, {});
 
   const inputStyle = {
     width:'100%', padding:'10px 14px', borderRadius:10,
@@ -178,8 +205,6 @@ export default function Dashboard() {
         <h2 style={{ margin:0, color:'#3d1a00', fontFamily:"'Playfair Display',Georgia,serif", fontSize:'clamp(18px,4vw,24px)' }}>
           📊 Dashboard
         </h2>
-
-        {/* Month selector */}
         <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fff', borderRadius:12, padding:'6px 12px', border:'1px solid #e8e0d5', boxShadow:'0 2px 8px rgba(0,0,0,0.05)' }}>
           <button onClick={() => changeMonth(-1)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:18, color:'#c17f3c', padding:'0 4px' }}>‹</button>
           <span style={{ fontWeight:700, color:'#3d1a00', fontSize:14, minWidth:90, textAlign:'center' }}>{monthLabel}</span>
@@ -196,6 +221,35 @@ export default function Dashboard() {
             <StatCard emoji="💰" label="TOTAL INCOME"   value={fc(summary?.totalIncome   || 0)} color="#2e7d32" sub={`${summary?.totalOrders || 0} orders`} />
             <StatCard emoji="💸" label="TOTAL EXPENSES" value={fc(summary?.totalExpenses || 0)} color="#c0504d" sub={`${expenses.length} entries`} />
             <StatCard emoji="📈" label="NET PROFIT"     value={fc(summary?.totalProfit   || 0)} color={(summary?.totalProfit || 0) >= 0 ? '#c17f3c' : '#c0504d'} sub={(summary?.totalProfit || 0) >= 0 ? '🟢 Profitable' : '🔴 Loss'} />
+          </div>
+
+          {/* ── Paid By Summary Cards ── */}
+          <div style={{ background:'#fff', borderRadius:16, padding:'16px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5' }}>
+            <h3 style={{ margin:'0 0 12px', fontSize:13, fontWeight:700, color:'#7a6a5a', letterSpacing:1 }}>💳 PAID BY</h3>
+            <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+              {PAYERS.map(p => (
+                <button key={p} onClick={() => setFilterPayer(filterPayer === p ? null : p)} style={{
+                  flex:1, minWidth:90, padding:'10px 12px', borderRadius:14,
+                  border:`2px solid ${filterPayer === p ? PAYER_COLOR[p] : '#e8e0d5'}`,
+                  background: filterPayer === p ? PAYER_COLOR[p] + '15' : '#faf8f5',
+                  cursor:'pointer', textAlign:'center', transition:'all 0.15s',
+                }}>
+                  <div style={{ fontSize:20, marginBottom:2 }}>{PAYER_EMOJI[p]}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color: filterPayer === p ? PAYER_COLOR[p] : '#3d1a00' }}>{p}</div>
+                  <div style={{ fontSize:13, fontWeight:800, color: PAYER_COLOR[p], marginTop:2 }}>{fc(payerTotals[p])}</div>
+                  {filterPayer === p && <div style={{ fontSize:10, color: PAYER_COLOR[p], marginTop:2, fontWeight:600 }}>● Filtering</div>}
+                </button>
+              ))}
+            </div>
+            {filterPayer && (
+              <button onClick={() => setFilterPayer(null)} style={{
+                marginTop:10, width:'100%', padding:'7px', borderRadius:10,
+                border:'1.5px dashed #e0d5c8', background:'transparent',
+                color:'#b0a090', fontSize:12, cursor:'pointer', fontWeight:600,
+              }}>
+                ✕ Clear filter — show all
+              </button>
+            )}
           </div>
 
           {/* ── Profit Bar ── */}
@@ -247,36 +301,34 @@ export default function Dashboard() {
           {/* ── Expenses List ── */}
           <div style={{ background:'#fff', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5', marginBottom:80 }}>
             <div style={{ padding:'14px 16px', borderBottom:'1px solid #e8e0d5', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:'#3d1a00' }}>💸 Expenses — {monthLabel}</h3>
+              <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:'#3d1a00' }}>
+                💸 Expenses — {monthLabel}
+                {filterPayer && (
+                  <span style={{ marginLeft:8, fontSize:12, background: PAYER_COLOR[filterPayer] + '18', color: PAYER_COLOR[filterPayer], padding:'2px 8px', borderRadius:10, fontWeight:700 }}>
+                    {PAYER_EMOJI[filterPayer]} {filterPayer}
+                  </span>
+                )}
+              </h3>
               <div style={{ display:'flex', gap:8 }}>
-                <button onClick={exportCSV} style={{
-                  padding:'8px 14px', borderRadius:10, border:'1.5px solid #4caf50',
-                  background:'#f0fff0', color:'#2e7d32',
-                  fontWeight:700, fontSize:13, cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif",
-                }}>📥</button>
-                <button onClick={openAdd} style={{
-                  padding:'8px 14px', borderRadius:10, border:'1.5px solid #9500ff',
-                  background:'#b088f01c', color:'#893fe3',
-                  fontWeight:700, fontSize:13, cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif",
-                }}>➕</button>
+                <button onClick={exportCSV} style={{ padding:'8px 14px', borderRadius:10, border:'1.5px solid #4caf50', background:'#f0fff0', color:'#2e7d32', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>📥</button>
+                <button onClick={openAdd} style={{ padding:'8px 14px', borderRadius:10, border:'1.5px solid #9500ff', background:'#b088f01c', color:'#893fe3', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>➕</button>
               </div>
             </div>
 
-            {expenses.length === 0 ? (
+            {filteredExpenses.length === 0 ? (
               <div style={{ textAlign:'center', padding:'40px 20px', color:'#b0a090' }}>
                 <div style={{ fontSize:40, marginBottom:10 }}>💸</div>
-                <p style={{ margin:0 }}>No expenses for {monthLabel}</p>
-                <p style={{ fontSize:12, marginTop:4 }}>Click "+ Add Expense" to record one</p>
+                <p style={{ margin:0 }}>No expenses {filterPayer ? `paid by ${filterPayer}` : `for ${monthLabel}`}</p>
+                <p style={{ fontSize:12, marginTop:4 }}>Click ➕ to record one</p>
               </div>
             ) : (
               <div style={{ padding:'0 8px' }}>
-                {expenses.map(exp => (
+                {filteredExpenses.map(exp => (
                   <ExpenseRow key={exp._id} expense={exp} onEdit={openEdit} onDelete={deleteExpense} />
                 ))}
-                <div style={{ padding:'12px 8px', display:'flex', justifyContent:'flex-end' }}>
-                  <span style={{ fontSize:14, fontWeight:800, color:'#c0504d' }}>Total: {fc(summary?.totalExpenses || 0)}</span>
+                <div style={{ padding:'12px 8px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  {filterPayer && <span style={{ fontSize:11, color:'#b0a090' }}>{filteredExpenses.length} of {expenses.length} expenses</span>}
+                  <span style={{ fontSize:14, fontWeight:800, color:'#c0504d', marginLeft:'auto' }}>Total: {fc(filteredTotal)}</span>
                 </div>
               </div>
             )}
@@ -288,10 +340,10 @@ export default function Dashboard() {
       {showForm && (
         <div style={{ position:'fixed', inset:0, zIndex:1100, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
           onClick={resetForm}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,0.3)', maxHeight:'90vh', overflowY:'auto' }}>
 
             {/* Modal Header */}
-            <div style={{ padding:'16px 20px', background:'#3d1a00', borderRadius:'20px 20px 0 0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={{ padding:'16px 20px', background:'#3d1a00', borderRadius:'20px 20px 0 0', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, zIndex:1 }}>
               <div style={{ color:'#f5c842', fontWeight:700, fontSize:16, fontFamily:"'Playfair Display',Georgia,serif" }}>
                 {editingId ? '✏️ Edit Expense' : '➕ Add Expense'}
               </div>
@@ -329,6 +381,25 @@ export default function Dashboard() {
                       cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
                     }}>
                       {CAT_EMOJI[cat]} {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Paid By ── */}
+              <div>
+                <label style={{ fontSize:11, color:'#7a6a5a', display:'block', marginBottom:8, fontWeight:600 }}>PAID BY *</label>
+                <div style={{ display:'flex', gap:8 }}>
+                  {PAYERS.map(p => (
+                    <button key={p} type="button" onClick={() => setFPaidBy(p)} style={{
+                      flex:1, padding:'8px 6px', borderRadius:12, fontSize:12, fontWeight:700,
+                      border:`2px solid ${fPaidBy === p ? PAYER_COLOR[p] : '#e0d5c8'}`,
+                      background: fPaidBy === p ? PAYER_COLOR[p] + '18' : 'transparent',
+                      color: fPaidBy === p ? PAYER_COLOR[p] : '#7a6a5a',
+                      cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textAlign:'center',
+                    }}>
+                      <div style={{ fontSize:16 }}>{PAYER_EMOJI[p]}</div>
+                      <div>{p}</div>
                     </button>
                   ))}
                 </div>
