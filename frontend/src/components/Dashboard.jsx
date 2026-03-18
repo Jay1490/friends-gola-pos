@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { expensesAPI } from '../services/api';
+import { expensesAPI, ordersAPI } from '../services/api';
 
 const fc = (n) => `₹${Number(n).toFixed(0)}`;
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -37,7 +37,6 @@ function ExpenseRow({ expense, onEdit, onDelete }) {
         <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{expense.title}</div>
         <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:2, flexWrap:'wrap' }}>
           <span style={{ fontSize:10, background: CAT_COLOR[expense.category] + '20', color: CAT_COLOR[expense.category], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>{expense.category}</span>
-          {/* Paid By badge */}
           <span style={{ fontSize:10, background: PAYER_COLOR[payer] + '18', color: PAYER_COLOR[payer], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
             {PAYER_EMOJI[payer]} {payer}
           </span>
@@ -59,6 +58,7 @@ export default function Dashboard() {
   const [month, setMonth]           = useState(thisMonth());
   const [summary, setSummary]       = useState(null);
   const [expenses, setExpenses]     = useState([]);
+  const [orders, setOrders]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showForm, setShowForm]     = useState(false);
   const [editingId, setEditingId]   = useState(null);
@@ -78,12 +78,14 @@ export default function Dashboard() {
   const load = async () => {
     setLoading(true);
     try {
-      const [sRes, eRes] = await Promise.all([
+      const [sRes, eRes, oRes] = await Promise.all([
         expensesAPI.getSummary(month),
         expensesAPI.getAll({ month }),
+        ordersAPI.getAll({ month, limit: 1000 }),
       ]);
       setSummary(sRes.data.data);
       setExpenses(eRes.data.data);
+      setOrders(oRes.data.data);
     } catch {
       toast.error('Failed to load dashboard');
     } finally {
@@ -191,6 +193,13 @@ export default function Dashboard() {
     return acc;
   }, {});
 
+  // ── Cash / Online INCOME totals from orders ──────────────────────────────
+  const activeOrders = orders.filter(o => o.status !== 'cancelled');
+  const cashOrders   = activeOrders.filter(o => !o.paymentMethod || o.paymentMethod === 'cash');
+  const onlineOrders = activeOrders.filter(o => o.paymentMethod === 'online');
+  const cashIncome   = cashOrders.reduce((s, o) => s + o.total, 0);
+  const onlineIncome = onlineOrders.reduce((s, o) => s + o.total, 0);
+
   const inputStyle = {
     width:'100%', padding:'10px 14px', borderRadius:10,
     border:'1.5px solid #e0d5c8', fontSize:14, outline:'none',
@@ -221,6 +230,22 @@ export default function Dashboard() {
             <StatCard emoji="💰" label="TOTAL INCOME"   value={fc(summary?.totalIncome   || 0)} color="#2e7d32" sub={`${summary?.totalOrders || 0} orders`} />
             <StatCard emoji="💸" label="TOTAL EXPENSES" value={fc(summary?.totalExpenses || 0)} color="#c0504d" sub={`${expenses.length} entries`} />
             <StatCard emoji="📈" label="NET PROFIT"     value={fc(summary?.totalProfit   || 0)} color={(summary?.totalProfit || 0) >= 0 ? '#c17f3c' : '#c0504d'} sub={(summary?.totalProfit || 0) >= 0 ? '🟢 Profitable' : '🔴 Loss'} />
+          </div>
+
+          {/* ── Cash / Online INCOME Cards ── */}
+          <div style={{ display:'flex', gap:10, marginBottom:16 }}>
+            <div style={{ flex:1, background:'#f0fff4', border:'1.5px solid #a5d6a7', borderRadius:14, padding:'12px 14px', textAlign:'center' }}>
+              <div style={{ fontSize:20, marginBottom:2 }}>💵</div>
+              <div style={{ fontSize:10, color:'#2e7d32', fontWeight:700, letterSpacing:0.5, marginBottom:4 }}>CASH INCOME</div>
+              <div style={{ fontSize:18, fontWeight:800, color:'#2e7d32' }}>{fc(cashIncome)}</div>
+              <div style={{ fontSize:11, color:'#81c784', marginTop:2 }}>{cashOrders.length} orders</div>
+            </div>
+            <div style={{ flex:1, background:'#f0f0ff', border:'1.5px solid #9fa8da', borderRadius:14, padding:'12px 14px', textAlign:'center' }}>
+              <div style={{ fontSize:20, marginBottom:2 }}>📱</div>
+              <div style={{ fontSize:10, color:'#1a237e', fontWeight:700, letterSpacing:0.5, marginBottom:4 }}>ONLINE INCOME</div>
+              <div style={{ fontSize:18, fontWeight:800, color:'#1a237e' }}>{fc(onlineIncome)}</div>
+              <div style={{ fontSize:11, color:'#7986cb', marginTop:2 }}>{onlineOrders.length} orders</div>
+            </div>
           </div>
 
           {/* ── Paid By Summary Cards ── */}
