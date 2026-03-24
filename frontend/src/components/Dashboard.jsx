@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { expensesAPI, ordersAPI } from '../services/api';
+import { expensesAPI, ordersAPI, settingsAPI } from '../services/api';
 
 const fc = (n) => `₹${Number(n).toFixed(0)}`;
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -59,11 +59,11 @@ export default function Dashboard() {
   const [summary, setSummary]       = useState(null);
   const [expenses, setExpenses]     = useState([]);
   const [orders, setOrders]         = useState([]);
+  const [upiOwners, setUpiOwners]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [showForm, setShowForm]     = useState(false);
   const [editingId, setEditingId]   = useState(null);
 
-  // Paid By filter — null means "All"
   const [filterPayer, setFilterPayer] = useState(null);
 
   // Form fields
@@ -78,14 +78,16 @@ export default function Dashboard() {
   const load = async () => {
     setLoading(true);
     try {
-      const [sRes, eRes, oRes] = await Promise.all([
+      const [sRes, eRes, oRes, setRes] = await Promise.all([
         expensesAPI.getSummary(month),
         expensesAPI.getAll({ month }),
         ordersAPI.getAll({ month, limit: 1000 }),
+        settingsAPI.getPublic(),
       ]);
       setSummary(sRes.data.data);
       setExpenses(eRes.data.data);
       setOrders(oRes.data.data);
+      setUpiOwners(setRes.data.data?.upiOwners || []);
     } catch {
       toast.error('Failed to load dashboard');
     } finally {
@@ -187,18 +189,27 @@ export default function Dashboard() {
 
   const filteredTotal = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
-  // Per-payer totals for the summary chips
   const payerTotals = PAYERS.reduce((acc, p) => {
     acc[p] = expenses.filter(e => (e.paidBy || 'Me') === p).reduce((s, e) => s + e.amount, 0);
     return acc;
   }, {});
 
   // ── Cash / Online INCOME totals from orders ──────────────────────────────
-  const activeOrders = orders.filter(o => o.status !== 'cancelled');
-  const cashOrders   = activeOrders.filter(o => !o.paymentMethod || o.paymentMethod === 'cash');
-  const onlineOrders = activeOrders.filter(o => o.paymentMethod === 'online');
-  const cashIncome   = cashOrders.reduce((s, o) => s + o.total, 0);
-  const onlineIncome = onlineOrders.reduce((s, o) => s + o.total, 0);
+  const activeOrders  = orders.filter(o => o.status !== 'cancelled');
+  const cashOrders    = activeOrders.filter(o => !o.paymentMethod || o.paymentMethod === 'cash');
+  const onlineOrders  = activeOrders.filter(o => o.paymentMethod === 'online');
+  const cashIncome    = cashOrders.reduce((s, o) => s + o.total, 0);
+  const onlineIncome  = onlineOrders.reduce((s, o) => s + o.total, 0);
+
+  // ── Per-UPI-owner online income ───────────────────────────────────────────
+  const ownerOnlineIncome = upiOwners.reduce((acc, owner) => {
+    const ownerOrders = onlineOrders.filter(o => o.upiOwner === owner.key);
+    acc[owner.key] = {
+      total:  ownerOrders.reduce((s, o) => s + o.total, 0),
+      count:  ownerOrders.length,
+    };
+    return acc;
+  }, {});
 
   const inputStyle = {
     width:'100%', padding:'10px 14px', borderRadius:10,
@@ -233,7 +244,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Cash / Online INCOME Cards ── */}
-          <div style={{ display:'flex', gap:10, marginBottom:16 }}>
+          <div style={{ display:'flex', gap:10, marginBottom: upiOwners.filter(o=>o.upiId).length > 0 ? 10 : 16 }}>
             <div style={{ flex:1, background:'#f0fff4', border:'1.5px solid #a5d6a7', borderRadius:14, padding:'12px 14px', textAlign:'center' }}>
               <div style={{ fontSize:20, marginBottom:2 }}>💵</div>
               <div style={{ fontSize:10, color:'#2e7d32', fontWeight:700, letterSpacing:0.5, marginBottom:4 }}>CASH INCOME</div>
@@ -248,9 +259,39 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ── Paid By Summary Cards ── */}
+          {/* ── Per-UPI-Owner Online Income ── */}
+          {upiOwners.filter(o => o.upiId).length > 0 && (
+            <div style={{ background:'#fff', borderRadius:16, padding:'16px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5' }}>
+              <h3 style={{ margin:'0 0 12px', fontSize:13, fontWeight:700, color:'#7a6a5a', letterSpacing:1 }}>📱 ONLINE — BY UPI OWNER</h3>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                {upiOwners.filter(o => o.upiId).map(owner => {
+                  const color = PAYER_COLOR[owner.key] || '#7c3aed';
+                  const info  = ownerOnlineIncome[owner.key] || { total:0, count:0 };
+                  const pct   = onlineIncome > 0 ? Math.round((info.total / onlineIncome) * 100) : 0;
+                  return (
+                    <div key={owner.key} style={{ flex:1, minWidth:90, background:`${color}08`, border:`2px solid ${color}25`, borderRadius:14, padding:'12px 14px', textAlign:'center' }}>
+                      <div style={{ fontSize:26, marginBottom:4 }}>{owner.emoji}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color, marginBottom:6 }}>{owner.name}</div>
+                      <div style={{ fontSize:18, fontWeight:900, color:'#1a237e' }}>{fc(info.total)}</div>
+                      <div style={{ fontSize:10, color:'#9fa8da', marginTop:3 }}>{info.count} orders</div>
+                      {onlineIncome > 0 && (
+                        <>
+                          <div style={{ height:4, background:`${color}20`, borderRadius:4, margin:'8px 0 4px' }}>
+                            <div style={{ height:'100%', background:color, borderRadius:4, width:`${pct}%`, transition:'width 0.5s' }}/>
+                          </div>
+                          <div style={{ fontSize:10, color, fontWeight:700 }}>{pct}%</div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Paid By Summary Cards (expenses) ── */}
           <div style={{ background:'#fff', borderRadius:16, padding:'16px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5' }}>
-            <h3 style={{ margin:'0 0 12px', fontSize:13, fontWeight:700, color:'#7a6a5a', letterSpacing:1 }}>💳 PAID BY</h3>
+            <h3 style={{ margin:'0 0 12px', fontSize:13, fontWeight:700, color:'#7a6a5a', letterSpacing:1 }}>💳 EXPENSES PAID BY</h3>
             <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
               {PAYERS.map(p => (
                 <button key={p} onClick={() => setFilterPayer(filterPayer === p ? null : p)} style={{
@@ -367,7 +408,6 @@ export default function Dashboard() {
           onClick={resetForm}>
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,0.3)', maxHeight:'90vh', overflowY:'auto' }}>
 
-            {/* Modal Header */}
             <div style={{ padding:'16px 20px', background:'#3d1a00', borderRadius:'20px 20px 0 0', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, zIndex:1 }}>
               <div style={{ color:'#f5c842', fontWeight:700, fontSize:16, fontFamily:"'Playfair Display',Georgia,serif" }}>
                 {editingId ? '✏️ Edit Expense' : '➕ Add Expense'}
@@ -375,7 +415,6 @@ export default function Dashboard() {
               <button onClick={resetForm} style={{ background:'rgba(255,255,255,0.1)', border:'none', color:'#f5c842', borderRadius:10, padding:'6px 12px', cursor:'pointer', fontSize:18 }}>✕</button>
             </div>
 
-            {/* Form */}
             <div style={{ padding:20, display:'flex', flexDirection:'column', gap:14 }}>
 
               <div>
@@ -411,7 +450,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* ── Paid By ── */}
               <div>
                 <label style={{ fontSize:11, color:'#7a6a5a', display:'block', marginBottom:8, fontWeight:600 }}>PAID BY *</label>
                 <div style={{ display:'flex', gap:8 }}>

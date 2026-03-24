@@ -5,44 +5,88 @@ import { productsAPI, ordersAPI, settingsAPI } from '../services/api';
 const CATS = ['All', 'Premium Gola', 'Classic Gola', 'Drinks', 'Extras', 'Other'];
 const fc   = (n) => `₹${Number(n).toFixed(0)}`;
 
+const OWNER_COLORS = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669' };
+
+// ── Owner Picker Modal ────────────────────────────────────────────────────────
+function OwnerPickerModal({ upiOwners, onPick, onCancel }) {
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:2000, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+      onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:24, width:'100%', maxWidth:340, overflow:'hidden', boxShadow:'0 24px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{ background:'linear-gradient(135deg,#1a237e,#283593)', padding:'20px', textAlign:'center' }}>
+          <div style={{ fontSize:36, marginBottom:6 }}>📱</div>
+          <div style={{ color:'#fff', fontWeight:700, fontSize:18, fontFamily:"'Playfair Display',Georgia,serif" }}>Who's receiving payment?</div>
+          <div style={{ color:'rgba(255,255,255,0.75)', fontSize:12, marginTop:4 }}>Select the UPI owner</div>
+        </div>
+        <div style={{ padding:'20px', display:'flex', flexDirection:'column', gap:12 }}>
+          {upiOwners.filter(o => o.upiId).map(owner => {
+            const color = OWNER_COLORS[owner.key] || '#c17f3c';
+            return (
+              <button key={owner.key} onClick={() => onPick(owner)} style={{
+                padding:'16px', borderRadius:14, border:`2px solid ${color}20`,
+                background:`${color}08`, cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+                display:'flex', alignItems:'center', gap:14,
+                transition:'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${color}18`; e.currentTarget.style.borderColor = color; }}
+              onMouseLeave={e => { e.currentTarget.style.background = `${color}08`; e.currentTarget.style.borderColor = `${color}20`; }}>
+                <span style={{ fontSize:32 }}>{owner.emoji}</span>
+                <div style={{ textAlign:'left' }}>
+                  <div style={{ fontSize:16, fontWeight:800, color:'#3d1a00' }}>{owner.name}</div>
+                  <div style={{ fontSize:12, color, fontFamily:'monospace', marginTop:2 }}>{owner.upiId}</div>
+                </div>
+              </button>
+            );
+          })}
+          {upiOwners.filter(o => o.upiId).length === 0 && (
+            <div style={{ textAlign:'center', padding:'20px', color:'#b0a090' }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>⚠️</div>
+              <p style={{ margin:0, fontSize:13 }}>No UPI IDs configured.<br/>Go to Settings → GPay / UPI.</p>
+            </div>
+          )}
+          <button onClick={onCancel} style={{ padding:'12px', borderRadius:12, border:'1.5px solid #e0d5c8', background:'transparent', color:'#7a6a5a', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontSize:14 }}>
+            ← Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── GPay QR Modal ─────────────────────────────────────────────────────────────
-function QRModal({ total, upiId, onConfirm, onCancel }) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=Friends+Gola&am=${total}&cu=INR`)}`;
+function QRModal({ total, owner, onConfirm, onCancel }) {
+  const color = OWNER_COLORS[owner.key] || '#1a237e';
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`upi://pay?pa=${owner.upiId}&pn=Friends+Gola&am=${total}&cu=INR`)}`;
   return (
     <div style={{ position:'fixed', inset:0, zIndex:2000, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
       onClick={onCancel}>
       <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:24, width:'100%', maxWidth:340, overflow:'hidden', boxShadow:'0 24px 60px rgba(0,0,0,0.4)' }}>
 
         {/* Header */}
-        <div style={{ background:'linear-gradient(135deg,#1a237e,#283593)', padding:'20px', textAlign:'center' }}>
-          <div style={{ fontSize:36, marginBottom:6 }}>📱</div>
-          <div style={{ color:'#fff', fontWeight:700, fontSize:20, fontFamily:"'Playfair Display',Georgia,serif" }}>Pay via GPay / UPI</div>
-          <div style={{ color:'rgba(255,255,255,0.75)', fontSize:13, marginTop:4 }}>Scan QR code to pay</div>
+        <div style={{ background:`linear-gradient(135deg,${color},${color}bb)`, padding:'20px', textAlign:'center' }}>
+          <div style={{ fontSize:28, marginBottom:4 }}>{owner.emoji}</div>
+          <div style={{ color:'#fff', fontWeight:700, fontSize:18, fontFamily:"'Playfair Display',Georgia,serif" }}>{owner.name}'s GPay QR</div>
+          <div style={{ color:'rgba(255,255,255,0.75)', fontSize:12, marginTop:4 }}>{owner.upiId}</div>
         </div>
 
         {/* QR Code */}
-        <div style={{ padding:'24px 20px 20px', textAlign:'center' }}>
-          <div style={{ background:'#f8f8ff', borderRadius:16, padding:16, display:'inline-block', border:'2px solid #e3e3ff', marginBottom:16 }}>
+        <div style={{ padding:'20px 20px 16px', textAlign:'center' }}>
+          <div style={{ background:'#f8f8ff', borderRadius:16, padding:14, display:'inline-block', border:`2px solid ${color}30`, marginBottom:14 }}>
             <img src={qrUrl} alt="GPay QR" width={200} height={200} style={{ display:'block', borderRadius:8 }} />
           </div>
 
           {/* Amount */}
-          <div style={{ background:'linear-gradient(135deg,#e8eaf6,#f3f4fd)', borderRadius:14, padding:'14px 20px', marginBottom:14 }}>
-            <div style={{ fontSize:11, color:'#5c6bc0', fontWeight:700, letterSpacing:1, marginBottom:4 }}>AMOUNT TO PAY</div>
-            <div style={{ fontSize:36, fontWeight:900, color:'#1a237e' }}>{fc(total)}</div>
-          </div>
-
-          {/* UPI ID */}
-          <div style={{ fontSize:12, color:'#999', marginBottom:20 }}>
-            UPI ID: <span style={{ fontWeight:700, color:'#444', fontFamily:'monospace' }}>{upiId}</span>
+          <div style={{ background:`linear-gradient(135deg,${color}18,${color}08)`, borderRadius:14, padding:'12px 20px', marginBottom:14, border:`1px solid ${color}30` }}>
+            <div style={{ fontSize:11, color, fontWeight:700, letterSpacing:1, marginBottom:4 }}>AMOUNT TO PAY</div>
+            <div style={{ fontSize:34, fontWeight:900, color:'#1a237e' }}>{fc(total)}</div>
           </div>
 
           {/* Buttons */}
           <div style={{ display:'flex', gap:10 }}>
-            <button onClick={onCancel} style={{ flex:1, padding:'14px', borderRadius:12, border:'1.5px solid #e0d5c8', background:'transparent', color:'#7a6a5a', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontSize:14 }}>
+            <button onClick={onCancel} style={{ flex:1, padding:'13px', borderRadius:12, border:'1.5px solid #e0d5c8', background:'transparent', color:'#7a6a5a', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontSize:13 }}>
               ← Back
             </button>
-            <button onClick={onConfirm} style={{ flex:2, padding:'14px', borderRadius:12, border:'none', background:'linear-gradient(135deg,#1a237e,#3949ab)', color:'#fff', fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontSize:14, boxShadow:'0 4px 14px rgba(26,35,126,0.4)' }}>
+            <button onClick={onConfirm} style={{ flex:2, padding:'13px', borderRadius:12, border:'none', background:`linear-gradient(135deg,${color},${color}cc)`, color:'#fff', fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontSize:14, boxShadow:`0 4px 14px ${color}40` }}>
               ✅ Payment Done
             </button>
           </div>
@@ -54,17 +98,19 @@ function QRModal({ total, upiId, onConfirm, onCancel }) {
 
 // ── Main POS ──────────────────────────────────────────────────────────────────
 export default function POS({ onOrderPlaced }) {
-  const [products,  setProducts]  = useState([]);
-  const [settings,  setSettings]  = useState(null);
-  const [cart,      setCart]      = useState([]);
-  const [activeCat, setActiveCat] = useState('All');
-  const [search,    setSearch]    = useState('');
-  const [note,      setNote]      = useState('');
-  const [loading,   setLoading]   = useState(true);
-  const [placing,   setPlacing]   = useState(false);
-  const [showCart,  setShowCart]  = useState(false);
-  const [payMethod, setPayMethod] = useState('cash');
-  const [showQR,    setShowQR]    = useState(false);
+  const [products,    setProducts]    = useState([]);
+  const [settings,    setSettings]    = useState(null);
+  const [cart,        setCart]        = useState([]);
+  const [activeCat,   setActiveCat]   = useState('All');
+  const [search,      setSearch]      = useState('');
+  const [note,        setNote]        = useState('');
+  const [loading,     setLoading]     = useState(true);
+  const [placing,     setPlacing]     = useState(false);
+  const [showCart,    setShowCart]    = useState(false);
+  const [payMethod,   setPayMethod]   = useState('cash');
+  const [showOwnerPicker, setShowOwnerPicker] = useState(false);
+  const [selectedOwner,   setSelectedOwner]   = useState(null); // { key, name, upiId, emoji }
+  const [showQR,      setShowQR]      = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -94,17 +140,20 @@ export default function POS({ onOrderPlaced }) {
   const updateQty = (id, delta) =>
     setCart(prev => prev.map(i => i._id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i).filter(i => i.qty > 0));
 
-  const placeOrder = async () => {
+  const placeOrder = async (ownerOverride) => {
     if (!cart.length || placing) return;
+    const owner = ownerOverride || selectedOwner;
     setPlacing(true);
     try {
       const res = await ordersAPI.place({
         items: cart.map(i => ({ productId:i._id, name:i.name, emoji:i.emoji, price:i.price, qty:i.qty })),
         subtotal, gstEnabled:false, gstRate:0, gst:0, total,
         note, paymentMethod: payMethod,
+        upiOwner: payMethod === 'online' ? (owner?.key || '') : '',
       });
-      toast.success(`✅ Order #${res.data.data.billNo} placed! (${payMethod === 'cash' ? '💵 Cash' : '📱 Online'})`);
-      setCart([]); setNote(''); setShowCart(false); setShowQR(false); setPayMethod('cash');
+      toast.success(`✅ Order #${res.data.data.billNo} placed! (${payMethod === 'cash' ? '💵 Cash' : `📱 ${owner?.name || 'Online'}`})`);
+      setCart([]); setNote(''); setShowCart(false); setShowQR(false);
+      setShowOwnerPicker(false); setSelectedOwner(null); setPayMethod('cash');
       if (onOrderPlaced) onOrderPlaced();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to place order');
@@ -113,8 +162,17 @@ export default function POS({ onOrderPlaced }) {
 
   const handleCheckout = () => {
     if (!cart.length) return;
-    if (payMethod === 'online') setShowQR(true);
-    else placeOrder();
+    if (payMethod === 'online') {
+      setShowOwnerPicker(true); // Step 1: pick owner
+    } else {
+      placeOrder(null);
+    }
+  };
+
+  const handleOwnerPicked = (owner) => {
+    setSelectedOwner(owner);
+    setShowOwnerPicker(false);
+    setShowQR(true); // Step 2: show QR
   };
 
   if (loading) return (
@@ -125,10 +183,27 @@ export default function POS({ onOrderPlaced }) {
     </div>
   );
 
+  const upiOwners = settings?.upiOwners || [];
+
   return (
     <div style={{ display:'flex', height:'100%', position:'relative', background:'#f8f5f0' }}>
 
-      {showQR && <QRModal total={total} upiId={settings?.upiId || 'pateljaya1607-2@oksbi'} onConfirm={placeOrder} onCancel={() => setShowQR(false)} />}
+      {showOwnerPicker && (
+        <OwnerPickerModal
+          upiOwners={upiOwners}
+          onPick={handleOwnerPicked}
+          onCancel={() => setShowOwnerPicker(false)}
+        />
+      )}
+
+      {showQR && selectedOwner && (
+        <QRModal
+          total={total}
+          owner={selectedOwner}
+          onConfirm={() => placeOrder(selectedOwner)}
+          onCancel={() => { setShowQR(false); setSelectedOwner(null); }}
+        />
+      )}
 
       {/* ── Product Area ── */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0 }}>
@@ -284,7 +359,7 @@ function BillPanel({ cart, note, setNote, total, cartCount, payMethod, setPayMet
             </div>
             {payMethod === 'online' && (
               <div style={{ marginTop:8, fontSize:11, color:'#5c6bc0', background:'#f0f0ff', padding:'6px 10px', borderRadius:8, textAlign:'center' }}>
-                📲 GPay QR will show after clicking button below
+                📲 You'll pick which owner's QR to show next
               </div>
             )}
           </div>
@@ -309,7 +384,7 @@ function BillPanel({ cart, note, setNote, total, cartCount, payMethod, setPayMet
               fontFamily:"'DM Sans',sans-serif", transition:'all 0.3s',
               boxShadow: payMethod==='online' ? '0 6px 20px rgba(26,35,126,0.35)' : '0 6px 20px rgba(46,125,50,0.35)',
             }}>
-              {placing ? '⏳ Placing...' : payMethod === 'online' ? '📱 Show GPay QR' : '💵 Place Cash Order'}
+              {placing ? '⏳ Placing...' : payMethod === 'online' ? '📱 Select Owner & Pay' : '💵 Place Cash Order'}
             </button>
             <button onClick={onClear} style={{ padding:'10px', borderRadius:10, border:'1.5px solid #e0d5c8', background:'transparent', color:'#c0504d', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
               🗑️ Clear Cart

@@ -102,7 +102,7 @@ npm run dev
 ```
 
 Frontend at `http://localhost:5173`  
-**Default PIN: `1234`**
+**Default PIN: `0000`**
 
 ---
 
@@ -231,7 +231,7 @@ curl http://localhost:5000/api/health
 # Login
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"pin":"1234"}'
+  -d '{"pin":"0000"}'
 
 # Get products
 curl http://localhost:5000/api/products

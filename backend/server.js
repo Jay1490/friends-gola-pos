@@ -24,7 +24,7 @@ const auth = (req, res, next) => {
 app.put('/api/orders/:id', auth, async (req, res) => {
   try {
     const Order = require('./models/Order');
-    const { items, note, paymentMethod } = req.body;
+    const { items, note, paymentMethod, upiOwner } = req.body;
     if (!items?.length) return res.status(400).json({ success:false, message:'Order must have at least one item' });
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success:false, message:'Order not found' });
@@ -36,9 +36,11 @@ app.put('/api/orders/:id', auth, async (req, res) => {
     order.gst      = gst;
     order.total    = sub + gst;
     order.note     = note || '';
-    if (paymentMethod === 'cash' || paymentMethod === 'online') order.paymentMethod = paymentMethod;
+    if (paymentMethod === 'cash' || paymentMethod === 'online') {
+      order.paymentMethod = paymentMethod;
+      order.upiOwner = paymentMethod === 'online' ? (upiOwner || order.upiOwner || '') : '';
+    }
     await order.save();
-    // console.log('✅ Order edited:', order.billNo);
     res.json({ success:true, data:order });
   } catch(err) {
     console.error('Edit error:', err.message);
@@ -72,42 +74,46 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS:10000 })
     const Settings = require('./models/Settings');
     if (!(await Settings.findOne())) {
       await Settings.create({
-        cafeName:'JAY CAFÉ', address:'Near Main Square, City',
+        cafeName:"Friend's Gola", address:"Near Main Square, City",
         phone:'+91 98765 43210', tagline:'Sip. Smile. Repeat.',
-        gstEnabled:false, gstRate:0, paperWidth:'58mm', ownerPin:'1234'
+        gstEnabled:false, gstRate:0, paperWidth:'58mm', ownerPin:'0000',
+        upiOwners: [
+          { key:'JP',     name:'JP',     upiId:'pateljaya1607-2@oksbi', emoji:'👦🏻' },
+          { key:'Jenish', name:'Jenish', upiId:'jenishpanchal1407@okicici', emoji:'🧔🏻‍♂️' },
+          { key:'Urvish', name:'Urvish', upiId:'urvshpatel1520@oksbi', emoji:'👨🏻' },
+        ],
       });
       console.log('✅ Default settings seeded');
+    } else {
+      // Migrate existing settings — add upiOwners if missing
+      const s = await Settings.findOne();
+      if (!s.upiOwners || s.upiOwners.length === 0) {
+        s.upiOwners = [
+          { key:'JP',     name:'JP',     upiId: s.upiId || '', emoji:'👦🏻' },
+          { key:'Jenish', name:'Jenish', upiId: s.upiId || '', emoji:'🧔🏻‍♂️' },
+          { key:'Urvish', name:'Urvish', upiId: s.upiId || '', emoji:'👨🏻' },
+        ];
+        await s.save();
+        console.log('✅ Migrated upiOwners into settings');
+      }
     }
 
     const Product = require('./models/Product');
     if ((await Product.countDocuments()) === 0) {
       await Product.insertMany([
-        // 🌟 Premium Gola
-        { name:'Spc Friends Gola',      price:150, category:'Premium Gola',     emoji:'⭐', active:true },
-        { name:'Kit Kat Gola',          price:120, category:'Premium Gola',     emoji:'🍫', active:true },
-        { name:'Oreo Gola',             price:120, category:'Premium Gola',     emoji:'🍪', active:true },
-        { name:'Chocolate Dry Fruit Gola', price:90, category:'Premium Gola',   emoji:'🍫', active:true },
-        { name:'Dry Fruit Gola',        price:70,  category:'Premium Gola',     emoji:'🥜', active:true },
-        { name:'Choco Chips Gola',      price:70,  category:'Premium Gola',     emoji:'🍩', active:true },
-        // 🧊 Classic Color Gola
-        { name:'Rose Gola',             price:40,  category:'Classic Gola',     emoji:'🌹', active:true },
-        { name:'Kala Khatta Gola',      price:40,  category:'Classic Gola',     emoji:'🫐', active:true },
-        { name:'Mava Badam Gola',       price:40,  category:'Classic Gola',     emoji:'🌰', active:true },
-        { name:'Chocolate Gola',        price:40,  category:'Classic Gola',     emoji:'🍫', active:true },
-        { name:'Dry Fruit Gola (Cls)',  price:70,  category:'Classic Gola',     emoji:'🥜', active:true },
-        { name:'Pineapple Gola',        price:40,  category:'Classic Gola',     emoji:'🍍', active:true },
-        { name:'Kachha Mango Gola',     price:40,  category:'Classic Gola',     emoji:'🥭', active:true },
-        { name:'Chiku Gola',            price:40,  category:'Classic Gola',     emoji:'🧊', active:true },
-        { name:'Khush Gola',            price:40,  category:'Classic Gola',     emoji:'😊', active:true },
-        { name:'Mango Gola',            price:40,  category:'Classic Gola',     emoji:'🥭', active:true },
+        { name:'Spc Friends Dish',      price:130, category:'Premium Gola',  emoji:'🌈', active:true },
+        { name:'Oreo/KitKat Dish',      price:110, category:'Premium Gola',  emoji:'🍪', active:true },
+        { name:'Choco Chips Dish',      price:80,  category:'Premium Gola',  emoji:'🍫', active:true },
+        { name:'Dry Fruit Dish',        price:80,  category:'Premium Gola',  emoji:'🥜', active:true },
+        { name:'Big Regular Dish',      price:60,  category:'Classic Gola',  emoji:'🧊', active:true },
+        { name:'Small Regular Dish',    price:40,  category:'Classic Gola',  emoji:'🧊', active:true },
+        { name:'Water Bottle',          price:10,  category:'Other',         emoji:'💧', active:true },
       ]);
       console.log('✅ Default products seeded');
     }
 
-    // ✅ THIS WAS THE BUG — app.listen was commented out!
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      // console.log(`✅ All routes active including PUT /api/orders/:id\n`);
     });
   })
   .catch(err => {

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { ordersAPI, productsAPI } from '../services/api';
+import { ordersAPI, productsAPI, settingsAPI } from '../services/api';
 
 const fc     = (n)   => `₹${Number(n).toFixed(0)}`;
 const fDate  = (iso) => new Date(iso).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
 const fTime  = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
 const today  = ()    => new Date().toISOString().split('T')[0];
+
+const OWNER_COLORS = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669' };
+const OWNER_EMOJIS = { JP:'👦🏻', Jenish:'🧔🏻‍♂️', Urvish:'👨🏻' };
 
 export default function History({ onOrderEdited }) {
   const [summary,       setSummary]       = useState([]);
@@ -13,25 +16,29 @@ export default function History({ onOrderEdited }) {
   const [selectedDate,  setSelected]      = useState(today());
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [showDateList,  setShowDateList]  = useState(false);
-  const [payFilter,     setPayFilter]     = useState('all'); // 'all' | 'cash' | 'online'
+  const [payFilter,     setPayFilter]     = useState('all');
+  const [upiOwners,     setUpiOwners]     = useState([]);
 
-  const [editOrder,   setEditOrder]   = useState(null);
-  const [editItems,   setEditItems]   = useState([]);
-  const [editNote,    setEditNote]    = useState('');
+  const [editOrder,     setEditOrder]     = useState(null);
+  const [editItems,     setEditItems]     = useState([]);
+  const [editNote,      setEditNote]      = useState('');
   const [editPayMethod, setEditPayMethod] = useState('cash');
-  const [allProducts, setAllProducts] = useState([]);
-  const [saving,      setSaving]      = useState(false);
-  const [showAddItem, setShowAddItem] = useState(false);
+  const [editUpiOwner,  setEditUpiOwner]  = useState('');
+  const [allProducts,   setAllProducts]   = useState([]);
+  const [saving,        setSaving]        = useState(false);
+  const [showAddItem,   setShowAddItem]   = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [sRes, pRes] = await Promise.all([
+        const [sRes, pRes, setRes] = await Promise.all([
           ordersAPI.getSummary(60),
           productsAPI.getAll({ all: 'true' }),
+          settingsAPI.getPublic(),
         ]);
         setSummary(sRes.data.data);
         setAllProducts(pRes.data.data);
+        setUpiOwners(setRes.data.data?.upiOwners || []);
       } catch { toast.error('Failed to load history'); }
     })();
   }, []);
@@ -51,7 +58,6 @@ export default function History({ onOrderEdited }) {
 
   // ── Download Daily PDF ────────────────────────────────────────────────────
   const downloadPDF = async () => {
-    // Dynamically load jsPDF if not already loaded
     if (!window.jspdf) {
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
@@ -62,13 +68,12 @@ export default function History({ onOrderEdited }) {
     }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-    const W = 210; // A4 width
+    const W = 210;
     const margin = 14;
     let y = 0;
 
     const dateStr = fDate(selectedDate + 'T00:00:00');
 
-    // ── Header ──────────────────────────────────────────────────────────────
     doc.setFillColor(61, 26, 0);
     doc.rect(0, 0, W, 32, 'F');
     doc.setTextColor(245, 200, 66);
@@ -83,7 +88,6 @@ export default function History({ onOrderEdited }) {
     doc.text(dateStr, W / 2, 28, { align:'center' });
     y = 40;
 
-    // ── Summary Cards ───────────────────────────────────────────────────────
     const cardW = (W - margin * 2 - 8) / 3;
     const cards = [
       { label:'Total Orders', value: String(activeOrders.length), color:[193,127,60] },
@@ -104,7 +108,6 @@ export default function History({ onOrderEdited }) {
     });
     y += 26;
 
-    // Total revenue bar
     doc.setFillColor(245, 200, 66);
     doc.roundedRect(margin, y, W - margin * 2, 14, 3, 3, 'F');
     doc.setTextColor(61, 26, 0);
@@ -113,26 +116,22 @@ export default function History({ onOrderEdited }) {
     doc.text('Total Revenue: Rs ' + dayRevenue, W / 2, y + 9, { align:'center' });
     y += 22;
 
-    // ── Orders Table ────────────────────────────────────────────────────────
-    // Table header
     doc.setFillColor(61, 26, 0);
     doc.rect(margin, y, W - margin * 2, 8, 'F');
     doc.setTextColor(245, 200, 66);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    const cols = [margin+2, margin+40, margin+65, margin+120, margin+148];
+    const cols = [margin+2, margin+38, margin+62, margin+108, margin+138, margin+162];
     doc.text('#Bill', cols[0], y + 5.5);
     doc.text('Time',  cols[1], y + 5.5);
     doc.text('Items', cols[2], y + 5.5);
     doc.text('Pay',   cols[3], y + 5.5);
-    doc.text('Total', cols[4], y + 5.5);
+    doc.text('Owner', cols[4], y + 5.5);
+    doc.text('Total', cols[5], y + 5.5);
     y += 8;
 
-    // Rows
-    const rowOrders = activeOrders;
-    rowOrders.forEach((order, idx) => {
+    activeOrders.forEach((order, idx) => {
       const rowH = 8;
-      // Zebra stripe
       if (idx % 2 === 0) {
         doc.setFillColor(250, 248, 245);
         doc.rect(margin, y, W - margin * 2, rowH, 'F');
@@ -142,33 +141,29 @@ export default function History({ onOrderEdited }) {
       doc.setFont('helvetica', 'normal');
 
       const itemsSummary = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
-      const truncatedItems = itemsSummary.length > 38 ? itemsSummary.slice(0, 35) + '...' : itemsSummary;
+      const truncatedItems = itemsSummary.length > 34 ? itemsSummary.slice(0, 31) + '...' : itemsSummary;
       const pay = order.paymentMethod === 'online' ? 'Online' : 'Cash';
 
-      doc.text(order.billNo || '-',      cols[0], y + 5.5);
-      doc.text(fTime(order.createdAt),   cols[1], y + 5.5);
-      doc.text(truncatedItems,           cols[2], y + 5.5);
-      // Payment badge color
+      doc.text(order.billNo || '-',    cols[0], y + 5.5);
+      doc.text(fTime(order.createdAt), cols[1], y + 5.5);
+      doc.text(truncatedItems,         cols[2], y + 5.5);
       if (pay === 'Online') { doc.setTextColor(26, 35, 126); doc.setFont('helvetica','bold'); }
       else { doc.setTextColor(46, 125, 50); doc.setFont('helvetica','bold'); }
       doc.text(pay, cols[3], y + 5.5);
+      doc.setTextColor(100, 60, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.text(order.upiOwner || '-', cols[4], y + 5.5);
       doc.setTextColor(193, 127, 60);
       doc.setFont('helvetica', 'bold');
-      doc.text('Rs ' + order.total, cols[4], y + 5.5);
+      doc.text('Rs ' + order.total, cols[5], y + 5.5);
 
-      // Bottom border
       doc.setDrawColor(232, 224, 213);
       doc.line(margin, y + rowH, W - margin, y + rowH);
       y += rowH;
 
-      // New page if needed
-      if (y > 270) {
-        doc.addPage();
-        y = 14;
-      }
+      if (y > 270) { doc.addPage(); y = 14; }
     });
 
-    // ── Footer ──────────────────────────────────────────────────────────────
     y += 8;
     doc.setDrawColor(193, 127, 60);
     doc.setLineWidth(0.5);
@@ -192,13 +187,26 @@ export default function History({ onOrderEdited }) {
   const onlineTotal    = onlineOrders.reduce((s, o) => s + o.total, 0);
   const dayRevenue     = cashTotal + onlineTotal;
 
+  // Per-owner online totals for the day
+  const ownerOnlineTotals = upiOwners.reduce((acc, o) => {
+    acc[o.key] = onlineOrders.filter(ord => ord.upiOwner === o.key).reduce((s, ord) => s + ord.total, 0);
+    return acc;
+  }, {});
+
   const filteredOrders = payFilter === 'cash'   ? orders.filter(o => !o.paymentMethod || o.paymentMethod === 'cash')
     :                    payFilter === 'online'  ? orders.filter(o => o.paymentMethod === 'online')
     :                    orders;
 
   // ── Edit helpers ──────────────────────────────────────────────────────────
-  const openEdit  = (order) => { setEditOrder(order); setEditItems(order.items.map(i => ({ ...i, _id: i.productId || i._id }))); setEditNote(order.note || ''); setEditPayMethod(order.paymentMethod || 'cash'); setShowAddItem(false); };
-  const closeEdit = () => { setEditOrder(null); setEditItems([]); setEditNote(''); setEditPayMethod('cash'); };
+  const openEdit  = (order) => {
+    setEditOrder(order);
+    setEditItems(order.items.map(i => ({ ...i, _id: i.productId || i._id })));
+    setEditNote(order.note || '');
+    setEditPayMethod(order.paymentMethod || 'cash');
+    setEditUpiOwner(order.upiOwner || '');
+    setShowAddItem(false);
+  };
+  const closeEdit = () => { setEditOrder(null); setEditItems([]); setEditNote(''); setEditPayMethod('cash'); setEditUpiOwner(''); };
 
   const updateEditQty   = (idx, delta) => setEditItems(prev => prev.map((item, i) => i === idx ? { ...item, qty: Math.max(0, item.qty + delta) } : item).filter(i => i.qty > 0));
   const removeEditItem  = (idx) => setEditItems(prev => prev.filter((_, i) => i !== idx));
@@ -215,12 +223,14 @@ export default function History({ onOrderEdited }) {
 
   const saveEdit = async () => {
     if (!editItems.length) return toast.error('Order must have at least one item');
+    if (editPayMethod === 'online' && !editUpiOwner) return toast.error('Please select which owner received this payment');
     setSaving(true);
     try {
       const res = await ordersAPI.edit(editOrder._id, {
         items: editItems.map(i => ({ productId: i.productId || i._id, name: i.name, emoji: i.emoji, price: i.price, qty: i.qty })),
         note: editNote,
         paymentMethod: editPayMethod,
+        upiOwner: editPayMethod === 'online' ? editUpiOwner : '',
       });
       const updated = res.data.data;
       setOrders(prev => prev.map(o => o._id === updated._id ? updated : o));
@@ -295,7 +305,7 @@ export default function History({ onOrderEdited }) {
           </div>
 
           {/* ── Cash / Online Summary Cards ── */}
-          <div style={{ display:'flex', gap:10, marginBottom:14 }}>
+          <div style={{ display:'flex', gap:10, marginBottom: upiOwners.some(o => o.upiId) ? 10 : 14 }}>
             <div style={{ flex:1, background:'#f0fff4', border:'1.5px solid #a5d6a7', borderRadius:14, padding:'12px 14px', textAlign:'center' }}>
               <div style={{ fontSize:20, marginBottom:2 }}>💵</div>
               <div style={{ fontSize:10, color:'#2e7d32', fontWeight:700, letterSpacing:0.5, marginBottom:4 }}>CASH</div>
@@ -309,6 +319,28 @@ export default function History({ onOrderEdited }) {
               <div style={{ fontSize:11, color:'#7986cb', marginTop:2 }}>{onlineOrders.length} orders</div>
             </div>
           </div>
+
+          {/* ── Per-Owner Online Breakdown ── */}
+          {upiOwners.filter(o => o.upiId).length > 0 && onlineOrders.length > 0 && (
+            <div style={{ background:'#fff', borderRadius:14, padding:'12px 16px', marginBottom:14, border:'1px solid #e8e0d5', boxShadow:'0 2px 8px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize:11, color:'#7a6a5a', fontWeight:700, letterSpacing:0.5, marginBottom:10 }}>📱 ONLINE — BY OWNER</div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                {upiOwners.filter(o => o.upiId).map(owner => {
+                  const color = OWNER_COLORS[owner.key] || '#7c3aed';
+                  const ownerOrders = onlineOrders.filter(o => o.upiOwner === owner.key);
+                  const ownerTotal  = ownerOnlineTotals[owner.key] || 0;
+                  return (
+                    <div key={owner.key} style={{ flex:1, minWidth:80, background:`${color}08`, border:`1.5px solid ${color}30`, borderRadius:12, padding:'10px 12px', textAlign:'center' }}>
+                      <div style={{ fontSize:20 }}>{owner.emoji}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color, marginTop:3 }}>{owner.name}</div>
+                      <div style={{ fontSize:16, fontWeight:800, color:'#1a237e', marginTop:4 }}>{fc(ownerTotal)}</div>
+                      <div style={{ fontSize:10, color:'#9fa8da', marginTop:2 }}>{ownerOrders.length} orders</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── Filter Tabs ── */}
           <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
@@ -339,15 +371,17 @@ export default function History({ onOrderEdited }) {
             </div>
           ) : filteredOrders.map(order => {
             const isOnline = order.paymentMethod === 'online';
+            const ownerColor = isOnline && order.upiOwner ? (OWNER_COLORS[order.upiOwner] || '#3949ab') : '#3949ab';
+            const ownerEmoji = isOnline && order.upiOwner ? (OWNER_EMOJIS[order.upiOwner] || '📱') : '📱';
             return (
-              <div key={order._id} style={{ background:'#fff', borderRadius:16, padding:'clamp(14px,3vw,18px)', marginBottom:12, boxShadow:'0 2px 10px rgba(0,0,0,0.06)', border:'1px solid #e8e0d5', borderLeft:`4px solid ${isOnline ? '#3949ab' : '#2e7d32'}` }}>
+              <div key={order._id} style={{ background:'#fff', borderRadius:16, padding:'clamp(14px,3vw,18px)', marginBottom:12, boxShadow:'0 2px 10px rgba(0,0,0,0.06)', border:'1px solid #e8e0d5', borderLeft:`4px solid ${isOnline ? ownerColor : '#2e7d32'}` }}>
 
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10, flexWrap:'wrap', gap:8 }}>
                   <div>
                     <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                       <span style={{ fontSize:12, fontWeight:700, color:'#3d1a00', background:'#f5c842', padding:'3px 12px', borderRadius:20 }}>#{order.billNo}</span>
-                      <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:20, background: isOnline ? '#e8eaf6' : '#e8f5e9', color: isOnline ? '#1a237e' : '#2e7d32' }}>
-                        {isOnline ? '📱 Online' : '💵 Cash'}
+                      <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:20, background: isOnline ? `${ownerColor}18` : '#e8f5e9', color: isOnline ? ownerColor : '#2e7d32' }}>
+                        {isOnline ? `${ownerEmoji} ${order.upiOwner || 'Online'}` : '💵 Cash'}
                       </span>
                       {order.status === 'cancelled' && (
                         <span style={{ fontSize:11, color:'#c0504d', background:'#ffe5e5', padding:'2px 8px', borderRadius:12 }}>Cancelled</span>
@@ -437,7 +471,7 @@ export default function History({ onOrderEdited }) {
               <div style={{ marginTop:12 }}>
                 <label style={{ fontSize:11,color:'#7a6a5a',display:'block',marginBottom:8,fontWeight:600 }}>PAYMENT METHOD</label>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => setEditPayMethod('cash')} style={{
+                  <button onClick={() => { setEditPayMethod('cash'); setEditUpiOwner(''); }} style={{
                     flex:1, padding:'11px 8px', borderRadius:12, cursor:'pointer',
                     border:`2px solid ${editPayMethod==='cash'?'#2e7d32':'#e0d5c8'}`,
                     background: editPayMethod==='cash' ? '#f0fff4' : '#faf8f5',
@@ -453,6 +487,31 @@ export default function History({ onOrderEdited }) {
                   }}>📱 Online</button>
                 </div>
               </div>
+
+              {/* UPI Owner selector (only for online) */}
+              {editPayMethod === 'online' && upiOwners.filter(o => o.upiId).length > 0 && (
+                <div style={{ marginTop:12 }}>
+                  <label style={{ fontSize:11,color:'#7a6a5a',display:'block',marginBottom:8,fontWeight:600 }}>UPI OWNER (who received?)</label>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {upiOwners.filter(o => o.upiId).map(owner => {
+                      const color = OWNER_COLORS[owner.key] || '#7c3aed';
+                      return (
+                        <button key={owner.key} onClick={() => setEditUpiOwner(owner.key)} style={{
+                          flex:1, minWidth:70, padding:'10px 6px', borderRadius:12, cursor:'pointer',
+                          border:`2px solid ${editUpiOwner===owner.key ? color : '#e0d5c8'}`,
+                          background: editUpiOwner===owner.key ? `${color}15` : '#faf8f5',
+                          color: editUpiOwner===owner.key ? color : '#7a6a5a',
+                          fontWeight:700, fontSize:13, fontFamily:"'DM Sans',sans-serif", textAlign:'center',
+                          transition:'all 0.2s',
+                        }}>
+                          <div style={{ fontSize:18 }}>{owner.emoji}</div>
+                          <div style={{ marginTop:2 }}>{owner.name}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginTop:12 }}>
                 <label style={{ fontSize:11,color:'#7a6a5a',display:'block',marginBottom:4,fontWeight:600 }}>ORDER NOTE</label>
@@ -497,7 +556,7 @@ function DateList({ summary, selectedDate, onSelect }) {
       ) : summary.map(d => (
         <button key={d._id} onClick={() => onSelect(d._id)} style={{ width:'100%',padding:'13px 14px',border:'none',borderBottom:'1px solid #f0ebe4',background:selectedDate===d._id?'#fff8ef':'#fff',borderLeft:selectedDate===d._id?'4px solid #c17f3c':'4px solid transparent',textAlign:'left',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
           <div style={{ fontSize:13,fontWeight:700,color:'#3d2a1a' }}>{fDate(d._id)}</div>
-          <div style={{ fontSize:11,color:'#c17f3c',marginTop:2 }}>{fc(d.totalRevenue)} · {d.totalOrders} orders</div>
+          <div style={{ fontSize:11,color:'#c17f3c',marginTop:2 }}>{`₹${Number(d.totalRevenue).toFixed(0)}`} · {d.totalOrders} orders</div>
         </button>
       ))}
     </>
