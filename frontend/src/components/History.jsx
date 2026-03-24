@@ -19,6 +19,8 @@ export default function History({ onOrderEdited }) {
   const [payFilter,     setPayFilter]     = useState('all');
   const [upiOwners,     setUpiOwners]     = useState([]);
 
+  const [viewOrder,     setViewOrder]     = useState(null);
+
   const [editOrder,     setEditOrder]     = useState(null);
   const [editItems,     setEditItems]     = useState([]);
   const [editNote,      setEditNote]      = useState('');
@@ -390,11 +392,6 @@ export default function History({ onOrderEdited }) {
                     </div>
                     {order.note && <div style={{ fontSize:11, color:'#c9a96e', marginTop:4 }}>📝 {order.note}</div>}
                   </div>
-                  {order.status !== 'cancelled' && (
-                    <button onClick={() => openEdit(order)} style={{ padding:'7px 14px', borderRadius:10, border:'1.5px solid #c17f3c', background:'#fff8ef', color:'#c17f3c', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-                      ✏️ Edit
-                    </button>
-                  )}
                 </div>
 
                 <div>
@@ -407,14 +404,118 @@ export default function History({ onOrderEdited }) {
                 </div>
 
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, paddingTop:10, borderTop:'1px dashed #e8e0d5' }}>
-                  <span style={{ fontSize:11, color:'#b0a090' }}>{order.items.length} items</span>
-                  <strong style={{ color:'#c17f3c', fontSize:15 }}>Total: {fc(order.total)}</strong>
+                  <span style={{ fontSize:11, color:'#b0a090' }}>{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    {/* 👁️ View button */}
+                    <button
+                      onClick={() => setViewOrder(order)}
+                      style={{ width:34, height:34, borderRadius:10, border:'1.5px solid #9fa8da', background:'#f0f0ff', color:'#3949ab', cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}
+                      title="View order"
+                    >👁️</button>
+                    {/* ✏️ Edit button */}
+                    {order.status !== 'cancelled' && (
+                      <button
+                        onClick={() => openEdit(order)}
+                        style={{ width:34, height:34, borderRadius:10, border:'1.5px solid #c17f3c', background:'#fff8ef', color:'#c17f3c', cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}
+                        title="Edit order"
+                      >✏️</button>
+                    )}
+                    <strong style={{ color:'#c17f3c', fontSize:15 }}>Total: {fc(order.total)}</strong>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* ── View Order Modal ── */}
+      {viewOrder && (() => {
+        const vo = viewOrder;
+        const isOnline = vo.paymentMethod === 'online';
+        const ownerColor = isOnline && vo.upiOwner ? (OWNER_COLORS[vo.upiOwner] || '#3949ab') : '#3949ab';
+        const ownerEmoji = isOnline && vo.upiOwner ? (OWNER_EMOJIS[vo.upiOwner] || '📱') : '📱';
+        return (
+          <div style={{ position:'fixed', inset:0, zIndex:1100, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setViewOrder(null)}>
+            <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:20, width:'100%', maxWidth:400, boxShadow:'0 20px 60px rgba(0,0,0,0.3)', overflow:'hidden' }}>
+
+              {/* Header */}
+              <div style={{ padding:'16px 20px', background:'#3d1a00', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div>
+                  <div style={{ color:'#f5c842', fontWeight:700, fontSize:16, fontFamily:"'Playfair Display',Georgia,serif" }}>🧾 Order Details</div>
+                  <div style={{ color:'#c9a96e', fontSize:12, marginTop:2 }}>#{vo.billNo}</div>
+                </div>
+                <button onClick={() => setViewOrder(null)} style={{ background:'rgba(255,255,255,0.1)', border:'none', color:'#f5c842', borderRadius:10, padding:'6px 12px', cursor:'pointer', fontSize:18 }}>✕</button>
+              </div>
+
+              {/* Meta row */}
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0ebe4', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, background: isOnline ? `${ownerColor}18` : '#e8f5e9', color: isOnline ? ownerColor : '#2e7d32' }}>
+                  {isOnline ? `${ownerEmoji} ${vo.upiOwner || 'Online'}` : '💵 Cash'}
+                </span>
+                {vo.status === 'cancelled' && (
+                  <span style={{ fontSize:11, color:'#c0504d', background:'#ffe5e5', padding:'3px 10px', borderRadius:20 }}>Cancelled</span>
+                )}
+                <span style={{ fontSize:12, color:'#b0a090', marginLeft:'auto' }}>
+                  {fDate(vo.createdAt)} · {fTime(vo.createdAt)}
+                </span>
+              </div>
+
+              {/* Items */}
+              <div style={{ padding:'4px 20px 12px' }}>
+                {vo.items.map((item, idx) => (
+                  <div key={idx} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:'1px dotted #f0ebe4' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <span style={{ fontSize:22 }}>{item.emoji}</span>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a' }}>{item.name}</div>
+                        <div style={{ fontSize:11, color:'#b0a090' }}>{fc(item.price)} × {item.qty}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:700, color:'#3d1a00' }}>{fc(item.price * item.qty)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Note */}
+              {vo.note && (
+                <div style={{ margin:'0 20px 12px', background:'#fff8ef', borderRadius:10, padding:'10px 14px', fontSize:12, color:'#c9a96e' }}>
+                  📝 {vo.note}
+                </div>
+              )}
+
+              {/* Footer total */}
+              <div style={{ padding:'14px 20px', background:'#faf8f5', borderTop:'2px dashed #e8e0d5', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:13, color:'#7a6a5a' }}>{vo.items.reduce((s,i) => s+i.qty, 0)} items</span>
+                <strong style={{ fontSize:20, color:'#c17f3c' }}>Total: {fc(vo.total)}</strong>
+              </div>
+
+              {/* Actions */}
+              {vo.status !== 'cancelled' && (
+                <div style={{ padding:'12px 20px 20px', display:'flex', gap:10 }}>
+                  <button
+                    onClick={() => { setViewOrder(null); openEdit(vo); }}
+                    style={{ flex:1, padding:'12px', borderRadius:12, border:'none', background:'linear-gradient(135deg,#c17f3c,#e8a045)', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 4px 14px rgba(193,127,60,0.4)' }}>
+                    ✏️ Edit Order
+                  </button>
+                  <button
+                    onClick={() => setViewOrder(null)}
+                    style={{ padding:'12px 20px', borderRadius:12, border:'1.5px solid #e0d5c8', background:'transparent', color:'#7a6a5a', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+                    Close
+                  </button>
+                </div>
+              )}
+              {vo.status === 'cancelled' && (
+                <div style={{ padding:'12px 20px 20px' }}>
+                  <button onClick={() => setViewOrder(null)} style={{ width:'100%', padding:'12px', borderRadius:12, border:'1.5px solid #e0d5c8', background:'transparent', color:'#7a6a5a', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Edit Modal ── */}
       {editOrder && (

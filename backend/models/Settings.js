@@ -23,7 +23,7 @@ const settingsSchema = new mongoose.Schema(
       default: [
         { key: 'JP',     name: 'JP',     upiId: 'pateljaya1607-2@oksbi', emoji: '👦🏻' },
         { key: 'Jenish', name: 'Jenish', upiId: 'jenishpanchal1407@okicici', emoji: '🧔🏻‍♂️' },
-        { key: 'Urvish', name: 'Urvish', upiId: 'urvshpatel1520@oksbi', emoji: '👨🏻' },
+        { key: 'Urvish', name: 'Urvish', upiId: 'urvishpatel1520@oksbi', emoji: '👨🏻' },
       ],
     },
   },

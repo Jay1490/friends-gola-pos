@@ -157,7 +157,7 @@ export default function Settings() {
                 borderRadius:14, padding:'14px 16px',
                 transition:'all 0.2s',
               }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: isEditing ? 12 : 0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: isEditing ? 12 : 0, wordWrap: 'break-word', wordBreak: 'break-all' }}>
                   <div style={{ fontSize:28, flexShrink:0 }}>{owner.emoji}</div>
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:13, fontWeight:800, color:'#3d1a00' }}>{owner.name}</div>
@@ -171,7 +171,7 @@ export default function Settings() {
                     <button
                       onClick={() => setEditingOwner(owner.key)}
                       style={{ padding:'7px 14px', borderRadius:10, border:`1.5px solid ${color}`, background:'transparent', color, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-                      ✏️ Edit
+                      ✏️
                     </button>
                   )}
                 </div>
