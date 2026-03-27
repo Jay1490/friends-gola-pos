@@ -274,7 +274,7 @@ export default function History({ onOrderEdited }) {
                 <span style={{ fontWeight:700, color:'#3d1a00' }}>Select Date</span>
                 <button onClick={() => setShowDateList(false)} style={{ background:'#f0ebe4', border:'none', borderRadius:8, padding:'5px 10px', cursor:'pointer', fontSize:14 }}>✕</button>
               </div>
-              <div style={{ flex:1, overflowY:'auto' }}>
+              <div style={{ flex:1, overflowY:'auto', paddingBottom:70 }}>
                 <DateList summary={summary} selectedDate={selectedDate} onSelect={selectDate} />
               </div>
             </div>
