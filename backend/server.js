@@ -51,7 +51,8 @@ app.put('/api/orders/:id', auth, async (req, res) => {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders',   require('./routes/orders'));
-app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/expenses',     require('./routes/expenses'));
+app.use('/api/withdrawals',  require('./routes/withdrawals'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/auth',     require('./routes/auth'));
 
@@ -76,11 +77,11 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS:10000 })
       await Settings.create({
         cafeName:"Friend's Gola", address:"Near Main Square, City",
         phone:'+91 98765 43210', tagline:'Sip. Smile. Repeat.',
-        gstEnabled:false, gstRate:0, paperWidth:'58mm', ownerPin:'0000',
+        gstEnabled:false, gstRate:0, paperWidth:'58mm', ownerPin:'1234',
         upiOwners: [
           { key:'JP',     name:'JP',     upiId:'pateljaya1607-2@oksbi', emoji:'👦🏻' },
-          { key:'Jenish', name:'Jenish', upiId:'jenishpanchal1407@okicici', emoji:'🧔🏻‍♂️' },
-          { key:'Urvish', name:'Urvish', upiId:'urvshpatel1520@oksbi', emoji:'👨🏻' },
+          { key:'Jenish', name:'Jenish', upiId:'',                       emoji:'🧔🏻‍♂️' },
+          { key:'Urvish', name:'Urvish', upiId:'',                       emoji:'👨🏻' },
         ],
       });
       console.log('✅ Default settings seeded');
@@ -90,15 +91,15 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS:10000 })
       if (!s.upiOwners || s.upiOwners.length === 0) {
         s.upiOwners = [
           { key:'JP',     name:'JP',     upiId: s.upiId || '', emoji:'👦🏻' },
-          { key:'Jenish', name:'Jenish', upiId: s.upiId || '', emoji:'🧔🏻‍♂️' },
-          { key:'Urvish', name:'Urvish', upiId: s.upiId || '', emoji:'👨🏻' },
+          { key:'Jenish', name:'Jenish', upiId:'',              emoji:'🧔🏻‍♂️' },
+          { key:'Urvish', name:'Urvish', upiId:'',              emoji:'👨🏻' },
         ];
         await s.save();
         console.log('✅ Migrated upiOwners into settings');
       }
     }
 
-    const Product = require('./models/Product');
+      const Product = require('./models/Product');
     if ((await Product.countDocuments()) === 0) {
       await Product.insertMany([
         { name:'Spc Friends Dish',      price:130, category:'Premium Gola',  emoji:'🌈', active:true },

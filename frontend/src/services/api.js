@@ -31,34 +31,42 @@ export const authAPI = {
 };
 
 export const productsAPI = {
-  getAll: (params) => api.get('/products', { params }),
-  create: (data)   => api.post('/products', data),
+  getAll: (params)   => api.get('/products', { params }),
+  create: (data)     => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
-  toggle: (id)     => api.patch(`/products/${id}/toggle`),
-  delete: (id)     => api.delete(`/products/${id}`),
+  toggle: (id)       => api.patch(`/products/${id}/toggle`),
+  delete: (id)       => api.delete(`/products/${id}`),
 };
 
 export const expensesAPI = {
-  getAll:     (params) => api.get('/expenses', { params }),
-  getSummary: (month)  => api.get('/expenses/summary', { params: { month } }),
-  create:     (data)   => api.post('/expenses', data),
+  getAll:     (params)   => api.get('/expenses', { params }),
+  getSummary: (month)    => api.get('/expenses/summary', { params: { month } }),
+  create:     (data)     => api.post('/expenses', data),
   update:     (id, data) => api.put(`/expenses/${id}`, data),
-  delete:     (id)     => api.delete(`/expenses/${id}`),
+  delete:     (id)       => api.delete(`/expenses/${id}`),
+};
+
+export const withdrawalsAPI = {
+  getAll:     (params)   => api.get('/withdrawals', { params }),
+  getSummary: (month)    => api.get('/withdrawals/summary', { params: { month } }),
+  create:     (data)     => api.post('/withdrawals', data),
+  update:     (id, data) => api.put(`/withdrawals/${id}`, data),
+  delete:     (id)       => api.delete(`/withdrawals/${id}`),
 };
 
 export const ordersAPI = {
-  place:      (data)       => api.post('/orders', data),
-  edit:       (id, data)   => api.put(`/orders/${id}`, data),   // ← NEW
-  getAll:     (params)     => api.get('/orders', { params }),
-  getSummary: (days)       => api.get('/orders/summary', { params: { days } }),
-  getToday:   ()           => api.get('/orders/today'),
-  getOne:     (id)         => api.get(`/orders/${id}`),
-  cancel:     (id)         => api.patch(`/orders/${id}/cancel`),
+  place:      (data)     => api.post('/orders', data),
+  edit:       (id, data) => api.put(`/orders/${id}`, data),
+  getAll:     (params)   => api.get('/orders', { params }),
+  getSummary: (days)     => api.get('/orders/summary', { params: { days } }),
+  getToday:   ()         => api.get('/orders/today'),
+  getOne:     (id)       => api.get(`/orders/${id}`),
+  cancel:     (id)       => api.patch(`/orders/${id}/cancel`),
 };
 
 export const settingsAPI = {
-  getPublic: () => api.get('/settings'),
-  getFull:   () => api.get('/settings/full'),
+  getPublic: ()     => api.get('/settings'),
+  getFull:   ()     => api.get('/settings/full'),
   update:    (data) => api.put('/settings', data),
 };
 
