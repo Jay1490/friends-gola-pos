@@ -276,7 +276,7 @@ export default function Dashboard() {
                 <div key={p} style={{ flex:1, minWidth:100, background:`${color}08`, border:`2px solid ${color}30`, borderRadius:16, padding:'14px 12px' }}>
                   {/* Avatar + name */}
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
-                    <div style={{ width:36, height:36, borderRadius:10, background:`${color}20`, border:`2px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
+                    <div style={{ width:30, height:30, borderRadius:10, background:`${color}20`, border:`2px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
                       {PAYER_EMOJI[p]}
                     </div>
                     <div style={{ fontSize:13, fontWeight:800, color }}>{p}</div>
@@ -284,20 +284,20 @@ export default function Dashboard() {
 
                   {/* UPI row */}
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5, padding:'4px 8px', background:'#f0f0ff', borderRadius:8 }}>
-                    <span style={{ fontSize:10, color:'#5c6bc0', fontWeight:600 }}>📱 UPI</span>
+                    <span style={{ fontSize:10, color:'#5c6bc0', fontWeight:600 }}>📱</span>
                     <span style={{ fontSize:12, fontWeight:700, color:'#1a237e' }}>{fc(data.upi)}</span>
                   </div>
 
                   {/* Cash row */}
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'4px 8px', background:'#f0fff4', borderRadius:8 }}>
-                    <span style={{ fontSize:10, color:'#388e3c', fontWeight:600 }}>💵 Cash</span>
+                    <span style={{ fontSize:10, color:'#388e3c', fontWeight:600 }}>💵</span>
                     <span style={{ fontSize:12, fontWeight:700, color:'#2e7d32' }}>{fc(data.cash)}</span>
                   </div>
 
                   {/* Total */}
                   <div style={{ borderTop:`1px dashed ${color}40`, paddingTop:8 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <span style={{ fontSize:11, color:'#7a6a5a', fontWeight:600 }}>Total</span>
+                      <span style={{ fontSize:12, color:'#7a6a5a', fontWeight:600 }}>∑</span>
                       <span style={{ fontSize:16, fontWeight:900, color }}>{fc(data.total)}</span>
                     </div>
                     {/* Share bar */}
@@ -395,7 +395,7 @@ export default function Dashboard() {
                     </div>
 
                     <div style={{ display:'flex', gap:8 }}>
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6, width:'75%'}}>
                         <div style={{ display:'flex', alignItems:'center', background:'#fff', border:`1.5px solid ${color}40`, borderRadius:10, overflow:'hidden' }}>
                           <span style={{ color:'#c9a96e', fontSize:14, padding:'0 10px', fontWeight:700, borderRight:`1px solid ${color}20` }}>₹</span>
                           <input
