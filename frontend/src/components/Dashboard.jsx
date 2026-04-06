@@ -89,14 +89,17 @@ export default function Dashboard() {
     (async () => {
       setLoading(true);
       try {
-        const [oRes, setRes, wRes] = await Promise.all([
-          ordersAPI.getAll({ limit: 10000 }),
-          settingsAPI.getPublic(),
-          withdrawalsAPI.getAll({}),
-        ]);
-        setOrders(oRes.data.data);
-        setUpiOwners(setRes.data.data?.upiOwners || []);
-        setWithdrawals(wRes.data.data);
+        const [oRes, setRes, wRes, eRes] = await Promise.all([
+        ordersAPI.getAll({ limit: 10000 }),
+        settingsAPI.getPublic(),
+        withdrawalsAPI.getAll({}),
+        expensesAPI.getAll({}),
+      ]);
+      setOrders(oRes.data.data);
+      setUpiOwners(setRes.data.data?.upiOwners || []);
+      setWithdrawals(wRes.data.data);
+      setExpenses(eRes.data.data);
+      setExpensesLoaded(true);
       } catch { toast.error('Failed to load dashboard'); }
       finally  { setLoading(false); }
     })();
@@ -257,8 +260,38 @@ export default function Dashboard() {
           <StatCard emoji="💰" label="TOTAL INCOME"  value={fc(totalIncome)}  color="#2e7d32" sub={`${activeOrders.length} orders`} />
           <StatCard emoji="💵" label="CASH INCOME"   value={fc(cashIncome)}   color="#c17f3c" sub={`${cashOrders.length} orders`} />
           <StatCard emoji="📱" label="ONLINE INCOME" value={fc(onlineIncome)} color="#1a237e" sub={`${onlineOrders.length} orders`} />
+          <StatCard
+            emoji="📈"
+            label="NET PROFIT"
+            value={expensesLoaded ? fc(totalProfit) : '—'}
+            color={expensesLoaded ? (totalProfit >= 0 ? '#2e7d32' : '#c0504d') : '#b0a090'}
+            sub={expensesLoaded ? 'after expenses' : 'load expenses first'}
+          />
         </div>
-
+        {/* Profit Bar */}
+        {expensesLoaded && totalIncome > 0 && (
+          <div style={{ background:'#fff', borderRadius:14, padding:'14px 18px', marginBottom:14, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <span style={{ fontSize:12, fontWeight:700, color:'#3d1a00' }}>📈 Profit Margin</span>
+              <span style={{ fontSize:14, fontWeight:800, color: totalProfit >= 0 ? '#2e7d32' : '#c0504d' }}>
+                {Math.round((totalProfit / totalIncome) * 100)}%
+              </span>
+            </div>
+            <div style={{ height:10, background:'#f0ebe4', borderRadius:10, overflow:'hidden' }}>
+              <div style={{
+                height:'100%', borderRadius:10, transition:'width 0.6s',
+                background: totalProfit >= 0
+                  ? 'linear-gradient(90deg,#43a047,#66bb6a)'
+                  : 'linear-gradient(90deg,#e53935,#ef5350)',
+                width:`${Math.min(100, Math.abs(totalProfit / totalIncome) * 100)}%`,
+              }}/>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, fontSize:11, color:'#b0a090' }}>
+              <span>Expenses: <strong style={{ color:'#c0504d' }}>{fc(totalExpenses)}</strong></span>
+              <span>Profit: <strong style={{ color: totalProfit >= 0 ? '#2e7d32' : '#c0504d' }}>{fc(totalProfit)}</strong></span>
+            </div>
+          </div>
+        )}
         {/* ══════════════════════════════════════
             👥 PER PERSON TOTAL INCOME
         ══════════════════════════════════════ */}
