@@ -6,12 +6,10 @@ const fc = (n) => `₹${Number(n).toFixed(0)}`;
 const CATS      = ['Colours', 'Toppings', 'Baraf', 'Other'];
 const CAT_EMOJI = { Colours:'🎨', Toppings:'🧁', Baraf:'🧊', Other:'📦' };
 const CAT_COLOR = { Colours:'#e91e63', Toppings:'#ff9800', Baraf:'#2196f3', Other:'#607d8b' };
-const PAYERS      = ['JP', 'Jenish', 'Urvish'];
-const PAYER_EMOJI = { JP:'👦🏻', Jenish:'🧔🏻‍♂️', Urvish:'👨🏻' };
-const PAYER_COLOR = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669' };
-
-const EXPENSE_COLOR = '#c17f3c';
-const EXPENSE_EMOJI = '💸';
+const PAYERS = ['JP', 'Jenish', 'Urvish'];       // only real people
+const ALL_PAYERS = ['JP', 'Jenish', 'Urvish', 'CashBox']; // for expenses only
+const PAYER_EMOJI = { JP:'👦🏻', Jenish:'🧔🏻‍♂️', Urvish:'👨🏻', CashBox:'💰' };
+const PAYER_COLOR = { JP:'#7c3aed', Jenish:'#0891b2', Urvish:'#059669', CashBox:'#f59e0b' };
 
 const todayIST = () => {
   const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
@@ -41,8 +39,8 @@ function ExpenseRow({ expense, onEdit, onDelete }) {
         <div style={{ fontSize:13, fontWeight:700, color:'#3d2a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{expense.title}</div>
         <div style={{ display:'flex', gap:6, alignItems:'center', marginTop:2, flexWrap:'wrap' }}>
           <span style={{ fontSize:10, background: CAT_COLOR[expense.category] + '20', color: CAT_COLOR[expense.category], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>{expense.category}</span>
-          <span style={{ fontSize:10, background: (PAYER_COLOR[payer] || '#c17f3c') + '18', color: PAYER_COLOR[payer] || '#c17f3c', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
-            {PAYER_EMOJI[payer] || '💸'} {payer}
+          <span style={{ fontSize:10, background: PAYER_COLOR[payer] + '18', color: PAYER_COLOR[payer], padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
+            {PAYER_EMOJI[payer]} {payer}
           </span>
           <span style={{ fontSize:11, color:'#b0a090' }}>{expense.date}</span>
           {expense.note && <span style={{ fontSize:11, color:'#c9a96e' }}>· {expense.note}</span>}
@@ -59,11 +57,13 @@ function ExpenseRow({ expense, onEdit, onDelete }) {
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  // Fast core data — loaded on mount
   const [orders,      setOrders]      = useState([]);
   const [upiOwners,   setUpiOwners]   = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading,     setLoading]     = useState(true);
 
+  // Expenses — loaded lazily
   const [expenses,        setExpenses]        = useState([]);
   const [expensesLoaded,  setExpensesLoaded]  = useState(false);
   const [expensesLoading, setExpensesLoading] = useState(false);
@@ -84,43 +84,36 @@ export default function Dashboard() {
   const [cashNotes,     setCashNotes]     = useState({ JP:'', Jenish:'', Urvish:'' });
   const [savingCash,    setSavingCash]    = useState({ JP:false, Jenish:false, Urvish:false });
   const [expandedOwner, setExpandedOwner] = useState(null);
+  
 
-  // Expense-as-cash state (4th card)
-  const [expCashInput,    setExpCashInput]    = useState('');
-  const [expCashNote,     setExpCashNote]     = useState('');
-  const [expCashCat,      setExpCashCat]      = useState('Other');
-  const [savingExpCash,   setSavingExpCash]   = useState(false);
-  const [expCashHistory,  setExpCashHistory]  = useState([]);
-  const [expCashExpanded, setExpCashExpanded] = useState(false);
-
+  // ── Fast initial load: orders + settings + withdrawals only ──────────────
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const [oRes, setRes, wRes, eRes] = await Promise.all([
-          ordersAPI.getAll({ limit: 10000 }),
-          settingsAPI.getPublic(),
-          withdrawalsAPI.getAll({}),
-          expensesAPI.getAll({}),
-        ]);
-        setOrders(oRes.data.data);
-        setUpiOwners(setRes.data.data?.upiOwners || []);
-        setWithdrawals(wRes.data.data);
-        setExpenses(eRes.data.data);
-        setExpensesLoaded(true);
-        setExpCashHistory(eRes.data.data.filter(e => e.note?.startsWith('[CashBox]')));
+        ordersAPI.getAll({ limit: 10000 }),
+        settingsAPI.getPublic(),
+        withdrawalsAPI.getAll({}),
+        expensesAPI.getAll({}),
+      ]);
+      setOrders(oRes.data.data);
+      setUpiOwners(setRes.data.data?.upiOwners || []);
+      setWithdrawals(wRes.data.data);
+      setExpenses(eRes.data.data);
+      setExpensesLoaded(true);
       } catch { toast.error('Failed to load dashboard'); }
       finally  { setLoading(false); }
     })();
   }, []);
 
+  // ── Load expenses on demand ───────────────────────────────────────────────
   const loadExpenses = async () => {
     setExpensesLoading(true);
     try {
       const res = await expensesAPI.getAll({});
       setExpenses(res.data.data);
       setExpensesLoaded(true);
-      setExpCashHistory(res.data.data.filter(e => e.note?.startsWith('[CashBox]')));
     } catch { toast.error('Failed to load expenses'); }
     finally  { setExpensesLoading(false); }
   };
@@ -133,23 +126,26 @@ export default function Dashboard() {
   const cashIncome    = cashOrders.reduce((s, o) => s + o.total, 0);
   const onlineIncome  = onlineOrders.reduce((s, o) => s + o.total, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  const cashBoxExpenses = expenses.filter(e => e.paidBy === 'CashBox').reduce((s, e) => s + e.amount, 0);
+  
   const totalProfit   = totalIncome - totalExpenses;
 
+  // Per owner — online UPI income
   const ownerOnlineIncome = upiOwners.reduce((acc, owner) => {
     const ownerOrders = onlineOrders.filter(o => o.upiOwner === owner.key);
     acc[owner.key] = { total: ownerOrders.reduce((s,o) => s+o.total, 0), count: ownerOrders.length };
     return acc;
   }, {});
 
+  // Per person — cash withdrawals received
   const wByPerson = PAYERS.reduce((acc, p) => {
     acc[p] = withdrawals.filter(w => w.person === p).reduce((s,w) => s+w.amount, 0);
     return acc;
   }, {});
+  const totalWithdrawn = Object.values(wByPerson).reduce((s,v) => s+v, 0);
+  const cashRemaining = cashIncome - totalWithdrawn - cashBoxExpenses;
 
-  const totalCashBoxExpenses = expCashHistory.reduce((s, e) => s + e.amount, 0);
-  const totalWithdrawn = Object.values(wByPerson).reduce((s,v) => s+v, 0) + totalCashBoxExpenses;
-  const cashRemaining  = cashIncome - totalWithdrawn;
-
+  // Per person TOTAL = UPI received + cash received
   const perPersonTotal = PAYERS.reduce((acc, p) => {
     const upi  = ownerOnlineIncome[p]?.total || 0;
     const cash = wByPerson[p] || 0;
@@ -157,10 +153,11 @@ export default function Dashboard() {
     return acc;
   }, {});
 
+  // Expense breakdowns (only valid when loaded)
   const byCategory = expenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount; return acc;
   }, {});
-  const payerTotals = PAYERS.reduce((acc, p) => {
+  const payerTotals = ALL_PAYERS.reduce((acc, p) => {
     acc[p] = expenses.filter(e => (e.paidBy||'JP') === p).reduce((s,e) => s+e.amount, 0); return acc;
   }, {});
 
@@ -191,43 +188,6 @@ export default function Dashboard() {
     } catch { toast.error('Failed'); }
   };
 
-  // ── Expense-as-cash handlers ──────────────────────────────────────────────
-  const recordExpenseCash = async () => {
-    const amt = parseFloat(expCashInput);
-    if (!amt || amt <= 0) return toast.error('Enter a valid amount');
-    if (cashRemaining - amt < 0) return toast.error(`❌ Exceeds cash balance of ${fc(cashRemaining)}`);
-    setSavingExpCash(true);
-    try {
-      const noteVal = `[CashBox]${expCashNote ? ' ' + expCashNote : ''}`;
-      await expensesAPI.create({
-        title:    expCashNote || 'Cash Box Expense',
-        amount:   amt,
-        category: expCashCat,
-        note:     noteVal,
-        date:     todayIST(),
-        paidBy:   'JP',
-      });
-      setExpCashInput('');
-      setExpCashNote('');
-      toast.success(`✅ Expense ${fc(amt)} recorded from cash box`);
-      const eRes = await expensesAPI.getAll({});
-      setExpenses(eRes.data.data);
-      setExpCashHistory(eRes.data.data.filter(e => e.note?.startsWith('[CashBox]')));
-    } catch { toast.error('Failed'); }
-    finally { setSavingExpCash(false); }
-  };
-
-  const deleteExpCash = async (id) => {
-    if (!window.confirm('Delete this cash expense?')) return;
-    try {
-      await expensesAPI.delete(id);
-      toast.success('Deleted');
-      const eRes = await expensesAPI.getAll({});
-      setExpenses(eRes.data.data);
-      setExpCashHistory(eRes.data.data.filter(e => e.note?.startsWith('[CashBox]')));
-    } catch { toast.error('Failed'); }
-  };
-
   // ── Expense form helpers ──────────────────────────────────────────────────
   const resetExpForm = () => {
     setFTitle(''); setFAmount(''); setFCategory('Colours');
@@ -253,6 +213,15 @@ export default function Dashboard() {
   const saveExpense = async () => {
     if (!fTitle.trim()) return toast.error('Title is required');
     if (!fAmount || isNaN(fAmount) || Number(fAmount) <= 0) return toast.error('Enter a valid amount');
+    // ✅ CASHBOX VALIDATION
+  if (fPaidBy === 'CashBox') {
+    const amount = Number(fAmount);
+
+    if (amount > cashRemaining) {
+      return toast.error(`❌ Exceeds cash balance of ${fc(cashRemaining)} `);
+    }
+  }
+
     setSavingExp(true);
     try {
       const payload = { title:fTitle, amount:Number(fAmount), category:fCategory, note:fNote, date:fDate, paidBy:fPaidBy };
@@ -260,9 +229,7 @@ export default function Dashboard() {
       else              { await expensesAPI.create(payload); toast.success('✅ Added!'); }
       resetExpForm();
       const res = await expensesAPI.getAll({});
-      setExpenses(res.data.data);
-      setExpCashHistory(res.data.data.filter(e => e.note?.startsWith('[CashBox]')));
-      setExpensesLoaded(true);
+      setExpenses(res.data.data); setExpensesLoaded(true);
     } catch { toast.error('Failed to save'); }
     finally { setSavingExp(false); }
   };
@@ -273,7 +240,6 @@ export default function Dashboard() {
       await expensesAPI.delete(id); toast.success('Deleted');
       const res = await expensesAPI.getAll({});
       setExpenses(res.data.data);
-      setExpCashHistory(res.data.data.filter(e => e.note?.startsWith('[CashBox]')));
     } catch { toast.error('Failed'); }
   };
 
@@ -315,7 +281,6 @@ export default function Dashboard() {
             sub={expensesLoaded ? 'after expenses' : 'load expenses first'}
           />
         </div>
-
         {/* Profit Bar */}
         {expensesLoaded && totalIncome > 0 && (
           <div style={{ background:'#fff', borderRadius:14, padding:'14px 18px', marginBottom:14, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5' }}>
@@ -340,8 +305,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* ── Per Person Total Income ── */}
+        {/* ══════════════════════════════════════
+            👥 PER PERSON TOTAL INCOME
+        ══════════════════════════════════════ */}
         <div style={{ background:'#fff', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5', marginBottom:14, overflow:'hidden' }}>
           <div style={{ padding:'13px 18px', background:'linear-gradient(135deg,#f5f0e8,#fffbf5)', borderBottom:'1px solid #f0ebe4' }}>
             <div style={{ fontSize:13, fontWeight:700, color:'#3d1a00', fontFamily:"'Playfair Display',Georgia,serif" }}>👥 Income Per Person</div>
@@ -354,25 +320,33 @@ export default function Dashboard() {
               const pct   = totalIncome > 0 ? Math.round((data.total / totalIncome) * 100) : 0;
               return (
                 <div key={p} style={{ flex:1, minWidth:100, background:`${color}08`, border:`2px solid ${color}30`, borderRadius:16, padding:'14px 12px' }}>
+                  {/* Avatar + name */}
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
                     <div style={{ width:30, height:30, borderRadius:10, background:`${color}20`, border:`2px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
                       {PAYER_EMOJI[p]}
                     </div>
                     <div style={{ fontSize:13, fontWeight:800, color }}>{p}</div>
                   </div>
+
+                  {/* UPI row */}
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5, padding:'4px 8px', background:'#f0f0ff', borderRadius:8 }}>
                     <span style={{ fontSize:10, color:'#5c6bc0', fontWeight:600 }}>📱</span>
                     <span style={{ fontSize:12, fontWeight:700, color:'#1a237e' }}>{fc(data.upi)}</span>
                   </div>
+
+                  {/* Cash row */}
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'4px 8px', background:'#f0fff4', borderRadius:8 }}>
                     <span style={{ fontSize:10, color:'#388e3c', fontWeight:600 }}>💵</span>
                     <span style={{ fontSize:12, fontWeight:700, color:'#2e7d32' }}>{fc(data.cash)}</span>
                   </div>
+
+                  {/* Total */}
                   <div style={{ borderTop:`1px dashed ${color}40`, paddingTop:8 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <span style={{ fontSize:12, color:'#7a6a5a', fontWeight:600 }}>∑</span>
                       <span style={{ fontSize:16, fontWeight:900, color }}>{fc(data.total)}</span>
                     </div>
+                    {/* Share bar */}
                     <div style={{ height:3, background:`${color}20`, borderRadius:3, margin:'7px 0 4px' }}>
                       <div style={{ height:'100%', background:color, borderRadius:3, width:`${pct}%`, transition:'width 0.5s' }}/>
                     </div>
@@ -439,8 +413,6 @@ export default function Dashboard() {
           )}
 
           <div style={{ padding:'0 14px 16px', display:'flex', flexDirection:'column', gap:12 }}>
-
-            {/* ── JP, Jenish, Urvish ── */}
             {PAYERS.map(person => {
               const color      = PAYER_COLOR[person];
               const withdrawn  = wByPerson[person] || 0;
@@ -469,7 +441,7 @@ export default function Dashboard() {
                     </div>
 
                     <div style={{ display:'flex', gap:8 }}>
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6, width:'75%' }}>
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6, width:'75%'}}>
                         <div style={{ display:'flex', alignItems:'center', background:'#fff', border:`1.5px solid ${color}40`, borderRadius:10, overflow:'hidden' }}>
                           <span style={{ color:'#c9a96e', fontSize:14, padding:'0 10px', fontWeight:700, borderRight:`1px solid ${color}20` }}>₹</span>
                           <input
@@ -525,119 +497,13 @@ export default function Dashboard() {
                         </div>
                       ))}
                       <div style={{ padding:'8px 16px', display:'flex', justifyContent:'flex-end' }}>
-                        <span style={{ fontSize:11, fontWeight:700, color }}>Total: {fc(wByPerson[person] || 0)}</span>
+                        <span style={{ fontSize:11, fontWeight:700, color }}>Total: {fc(withdrawn)}</span>
                       </div>
                     </div>
                   )}
                 </div>
               );
             })}
-
-            {/* ══ 4th card: Expense (from cash box) ══ */}
-            <div style={{ background:`${EXPENSE_COLOR}08`, border:`2px solid ${EXPENSE_COLOR}40`, borderRadius:16, overflow:'hidden' }}>
-              <div style={{ padding:'14px 16px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                  <div style={{ width:40, height:40, borderRadius:12, background:`${EXPENSE_COLOR}20`, border:`2px solid ${EXPENSE_COLOR}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
-                    {EXPENSE_EMOJI}
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#3d1a00' }}>Expense</div>
-                    <div style={{ fontSize:11, color:'#b0a090', marginTop:1 }}>
-                      Spent from box: <span style={{ fontWeight:700, color: EXPENSE_COLOR }}>{fc(totalCashBoxExpenses)}</span>
-                    </div>
-                  </div>
-                  {expCashHistory.length > 0 && (
-                    <button onClick={() => setExpCashExpanded(v => !v)}
-                      style={{ padding:'5px 10px', borderRadius:8, border:`1px solid ${EXPENSE_COLOR}40`, background: expCashExpanded ? `${EXPENSE_COLOR}15` : 'transparent', color: EXPENSE_COLOR, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
-                      {expCashExpanded ? '▲' : `▼ ${expCashHistory.length}`}
-                    </button>
-                  )}
-                </div>
-
-                {/* Category picker */}
-                <div style={{ display:'flex', gap:6, marginBottom:10, flexWrap:'wrap' }}>
-                  {CATS.map(cat => (
-                    <button key={cat} onClick={() => setExpCashCat(cat)} style={{
-                      padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600,
-                      border:`1.5px solid ${expCashCat === cat ? CAT_COLOR[cat] : '#e0d5c8'}`,
-                      background: expCashCat === cat ? CAT_COLOR[cat] + '20' : 'transparent',
-                      color: expCashCat === cat ? CAT_COLOR[cat] : '#9a8a7a',
-                      cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
-                    }}>
-                      {CAT_EMOJI[cat]} {cat}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ display:'flex', gap:8 }}>
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6, width:'75%' }}>
-                    <div style={{ display:'flex', alignItems:'center', background:'#fff', border:`1.5px solid ${EXPENSE_COLOR}40`, borderRadius:10, overflow:'hidden' }}>
-                      <span style={{ color:'#c9a96e', fontSize:14, padding:'0 10px', fontWeight:700, borderRight:`1px solid ${EXPENSE_COLOR}20` }}>₹</span>
-                      <input
-                        type="number"
-                        value={expCashInput}
-                        onChange={e => setExpCashInput(e.target.value)}
-                        placeholder="Amount..."
-                        style={{ flex:1, background:'transparent', border:'none', outline:'none', color:'#3d1a00', fontSize:14, fontFamily:"'DM Sans',sans-serif", padding:'10px' }}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      value={expCashNote}
-                      onChange={e => setExpCashNote(e.target.value)}
-                      placeholder="What was bought? (optional)"
-                      style={{ background:'#fff', border:`1.5px solid ${EXPENSE_COLOR}30`, borderRadius:10, outline:'none', color:'#7a6a5a', fontSize:12, fontFamily:"'DM Sans',sans-serif", padding:'8px 12px' }}
-                    />
-                  </div>
-                  <button
-                    onClick={recordExpenseCash}
-                    disabled={savingExpCash || !expCashInput}
-                    style={{
-                      width:54, borderRadius:12, border:'none', flexShrink:0,
-                      background: savingExpCash || !expCashInput ? '#e0d5c8' : `linear-gradient(135deg,${EXPENSE_COLOR},${EXPENSE_COLOR}cc)`,
-                      color: savingExpCash || !expCashInput ? '#b0a090' : '#fff',
-                      fontSize:22, cursor: savingExpCash || !expCashInput ? 'not-allowed' : 'pointer',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      boxShadow: expCashInput ? `0 4px 14px ${EXPENSE_COLOR}40` : 'none',
-                      transition:'all 0.2s',
-                    }}>
-                    {savingExpCash ? '⏳' : '✓'}
-                  </button>
-                </div>
-              </div>
-
-              {/* History for cash box expenses */}
-              {expCashExpanded && expCashHistory.length > 0 && (
-                <div style={{ borderTop:`1px solid ${EXPENSE_COLOR}20`, background:`${EXPENSE_COLOR}05` }}>
-                  <div style={{ padding:'8px 16px 4px', fontSize:10, fontWeight:700, color: EXPENSE_COLOR, letterSpacing:0.8 }}>HISTORY</div>
-                  {[...expCashHistory].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
-                    <div key={e._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 16px', borderBottom:`1px solid ${EXPENSE_COLOR}10` }}>
-                      <div style={{ width:6, height:6, borderRadius:'50%', background: EXPENSE_COLOR, flexShrink:0 }}/>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color:'#3d2a1a' }}>
-                          {fc(e.amount)}
-                          {e.title && e.title !== 'Cash Box Expense' && (
-                            <span style={{ color:'#b0a090', fontWeight:400 }}> · {e.title}</span>
-                          )}
-                          <span style={{ fontSize:10, color: CAT_COLOR[e.category] || '#b0a090', marginLeft:6, fontWeight:700 }}>
-                            {CAT_EMOJI[e.category]} {e.category}
-                          </span>
-                        </div>
-                        <div style={{ fontSize:10, color:'#b0a090', marginTop:1 }}>{e.date}</div>
-                      </div>
-                      <button onClick={() => deleteExpCash(e._id)}
-                        style={{ width:22, height:22, borderRadius:6, border:'1px solid #f0d0d0', background:'transparent', color:'#c0504d', cursor:'pointer', fontSize:14, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  <div style={{ padding:'8px 16px', display:'flex', justifyContent:'flex-end' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color: EXPENSE_COLOR }}>Total: {fc(totalCashBoxExpenses)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
           </div>
         </div>
 
@@ -646,13 +512,14 @@ export default function Dashboard() {
         ══════════════════════════════════════ */}
         <div style={{ background:'#fff', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'1px solid #e8e0d5', marginBottom:80, overflow:'hidden' }}>
 
+          {/* Header */}
           <div style={{ padding:'13px 16px', borderBottom: expensesLoaded ? '1px solid #e8e0d5' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
             <div>
               <span style={{ fontSize:14, fontWeight:700, color:'#3d1a00' }}>💸 Expenses</span>
               {expensesLoaded && (
                 <span style={{ fontSize:12, fontWeight:400, color:'#b0a090', marginLeft:8 }}>
                   {expenses.length} total · <span style={{ color:'#c0504d', fontWeight:700 }}>{fc(totalExpenses)}</span>
-                  {totalIncome > 0 && (
+                  {expensesLoaded && totalIncome > 0 && (
                     <span style={{ color:'#b0a090' }}> · profit: <span style={{ color: totalProfit >= 0 ? '#2e7d32' : '#c0504d', fontWeight:700 }}>{fc(totalProfit)}</span></span>
                   )}
                 </span>
@@ -681,6 +548,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Not loaded state */}
           {!expensesLoaded && !expensesLoading && (
             <div style={{ textAlign:'center', padding:'36px 20px', color:'#b0a090' }}>
               <div style={{ fontSize:40, marginBottom:10 }}>💸</div>
@@ -698,11 +566,12 @@ export default function Dashboard() {
 
           {expensesLoaded && !expensesLoading && (
             <>
+              {/* Paid by */}
               {expenses.length > 0 && (
                 <div style={{ padding:'12px 16px', borderBottom:'1px solid #f0ebe4' }}>
                   <div style={{ fontSize:10, color:'#b0a090', fontWeight:700, letterSpacing:0.8, marginBottom:10 }}>PAID BY</div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                    {PAYERS.map(p => (
+                    {ALL_PAYERS.map(p => (
                       <div key={p} style={{ flex:1, minWidth:80, padding:'10px', borderRadius:12, border:`1.5px solid ${PAYER_COLOR[p]}30`, background: PAYER_COLOR[p]+'10', textAlign:'center' }}>
                         <div style={{ fontSize:18 }}>{PAYER_EMOJI[p]}</div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#3d1a00', marginTop:3 }}>{p}</div>
@@ -713,6 +582,7 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* Category bars */}
               {Object.keys(byCategory).length > 0 && (
                 <div style={{ padding:'12px 16px', borderBottom:'1px solid #f0ebe4' }}>
                   <div style={{ fontSize:10, color:'#b0a090', fontWeight:700, letterSpacing:0.8, marginBottom:10 }}>BY CATEGORY</div>
@@ -735,6 +605,7 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* List */}
               {expenses.length === 0 ? (
                 <div style={{ textAlign:'center', padding:'32px 20px', color:'#b0a090' }}>
                   <div style={{ fontSize:36, marginBottom:8 }}>💸</div>
@@ -805,7 +676,7 @@ export default function Dashboard() {
               <div>
                 <label style={{ fontSize:11, color:'#7a6a5a', display:'block', marginBottom:8, fontWeight:600 }}>PAID BY *</label>
                 <div style={{ display:'flex', gap:8 }}>
-                  {PAYERS.map(p => (
+                  {ALL_PAYERS.map(p => (
                     <button key={p} type="button" onClick={() => setFPaidBy(p)} style={{
                       flex:1, padding:'8px 6px', borderRadius:12, fontSize:12, fontWeight:700,
                       border:`2px solid ${fPaidBy === p ? PAYER_COLOR[p] : '#e0d5c8'}`,
@@ -831,7 +702,7 @@ export default function Dashboard() {
                   background: savingExp ? '#888' : 'linear-gradient(135deg,#c17f3c,#e8a045)',
                   color:'#fff', fontSize:15, fontWeight:700,
                   cursor: savingExp ? 'not-allowed' : 'pointer',
-                  fontFamily:"'DM Sans',sans-serif", boxShadow:'0 4px 14px rgba(193,127,60,0.35)',
+                  fontFamily:"'DM Sans',sans-serif", boxShadow:'0 4px 14px rgba(193,127,60,0.4)',
                 }}>
                   {savingExp ? '⏳ Saving...' : editingExpId ? '💾 Update' : '➕ Add Expense'}
                 </button>
