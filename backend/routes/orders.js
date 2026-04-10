@@ -25,6 +25,26 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/orders/alltime-summary
+router.get('/alltime-summary', auth, async (req, res) => {
+  try {
+    const [cashOrders, onlineOrders] = await Promise.all([
+      Order.aggregate([
+        { $match: { status: { $ne: 'cancelled' }, paymentMethod: { $in: ['cash', null] } } },
+        { $group: { _id: null, total: { $sum: '$total' }, count: { $sum: 1 } } }
+      ]),
+      Order.aggregate([
+        { $match: { status: { $ne: 'cancelled' }, paymentMethod: 'online' } },
+        { $group: { _id: '$upiOwner', total: { $sum: '$total' }, count: { $sum: 1 } } }
+      ]),
+    ]);
+
+    res.json({ success: true, data: { cashOrders, onlineOrders } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET /api/orders/summary — MUST be before /:id
 router.get('/summary', auth, async (req, res) => {
   try {
