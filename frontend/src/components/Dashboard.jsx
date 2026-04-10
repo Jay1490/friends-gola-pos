@@ -92,8 +92,7 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const [oRes, setRes, wRes, eRes] = await Promise.all([
-        // ordersAPI.getAll({ limit: 10000 }),
-        ordersAPI.getAlltimeSummary(),
+        ordersAPI.getAll({ limit: 10000 }),
         settingsAPI.getPublic(),
         withdrawalsAPI.getAll({}),
         expensesAPI.getAll({}),

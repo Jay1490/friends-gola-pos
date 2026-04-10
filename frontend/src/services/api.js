@@ -16,14 +16,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  async (err) => {
-    const config = err.config;
-    // retry once on network error or 5xx
-    if (!config._retry && (!err.response || err.response.status >= 500)) {
-      config._retry = true;
-      await new Promise(r => setTimeout(r, 2000)); // wait 2s
-      return api(config);
-    }
+  (err) => {
     if (err.response?.status === 401) {
       sessionStorage.removeItem('cafe_token');
       window.location.reload();
@@ -31,17 +24,6 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
-
-// api.interceptors.response.use(
-//   (res) => res,
-//   (err) => {
-//     if (err.response?.status === 401) {
-//       sessionStorage.removeItem('cafe_token');
-//       window.location.reload();
-//     }
-//     return Promise.reject(err);
-//   }
-// );
 
 export const authAPI = {
   login:  (pin)   => api.post('/auth/login', { pin }),
