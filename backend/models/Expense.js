@@ -7,7 +7,7 @@ const expenseSchema = new mongoose.Schema(
     category: { type: String, enum: ['Colours', 'Toppings', 'Baraf', 'Other'], default: 'Other' },
     note:     { type: String, default: '' },
     date:     { type: String, required: true }, // YYYY-MM-DD
-    paidBy:   { type: String, enum: ['JP', 'Jenish', 'Urvish', 'CashBox'], default: 'JP' }, 
+    paidBy:   { type: String, enum: ['JP', 'Jenish', 'Urvish'], default: 'JP' }, 
   },
   { timestamps: true }
 );
