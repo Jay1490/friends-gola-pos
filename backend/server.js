@@ -16,8 +16,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-app.options('*', cors()); // handle preflight for all routes
-app.use(express.json());
+app.options('*', cors()); // handle preflight for all routesapp.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Auth middleware ──────────────────────────────────────────────────────────

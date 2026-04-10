@@ -80,7 +80,6 @@ export const ordersAPI = {
   getToday:   ()         => api.get('/orders/today'),
   getOne:     (id)       => api.get(`/orders/${id}`),
   cancel:     (id)       => api.patch(`/orders/${id}/cancel`),
-  getAlltimeSummary: () => api.get('/orders/alltime-summary'),
 };
 
 export const settingsAPI = {
