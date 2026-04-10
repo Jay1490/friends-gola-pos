@@ -8,7 +8,15 @@ require('dotenv').config();
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', methods: ['GET','POST','PUT','DELETE','PATCH'], allowedHeaders: ['Content-Type','Authorization'] }));
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'https://friends-gola-pos.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors()); // handle preflight for all routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
