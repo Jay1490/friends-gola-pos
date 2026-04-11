@@ -279,13 +279,18 @@ export default function History({ onOrderEdited }) {
             const isToday    = key === todayStr;
             const isSelected = key === selectedDate;
             const isWeekend  = ((d + offset - 1) % 7) >= 5;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const current = new Date(key);
+            current.setHours(0,0,0,0);
+            const isFuture = current > today;
 
             return (
-              <div key={d} onClick={() => selectDate(key)}
+              <div key={d} onClick={() => !isFuture && selectDate(key)}
                 style={{
                   aspectRatio:'1', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                  borderRadius:'50%', cursor:'pointer', position:'relative', transition:'background 0.15s',
-                  background: isSelected ? '#3d1a00' : isToday ? '#f5c842' : 'transparent',
+                  borderRadius:'50%', position:'relative', transition:'background 0.15s', cursor: isFuture ? 'not-allowed' : 'pointer',
+                  opacity: isFuture ? 0.4 : 1, background: isFuture ? '#f5f5f5' : isSelected ? '#3d1a00' : isToday ? '#f5c842': 'transparent',
                 }}>
                 <span style={{
                   fontSize:14, fontWeight: isToday||isSelected ? 700 : 400,
@@ -322,7 +327,7 @@ export default function History({ onOrderEdited }) {
         {/* Recent dates list */}
         <div style={{ marginTop:20 }}>
           <div style={{ fontSize:11, color:'#b0a090', fontWeight:700, letterSpacing:0.5, marginBottom:10 }}>RECENT DAYS WITH ORDERS</div>
-          {summary.slice(0,10).map(d => (
+          {summary.slice(0,5).map(d => (
             <div key={d._id} onClick={() => selectDate(d._id)}
               style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 14px', background:'#fff', borderRadius:12, marginBottom:8, border:'1px solid #e8e0d5', cursor:'pointer', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
               <div>
