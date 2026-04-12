@@ -142,7 +142,7 @@ function Pagination({ page, totalPages, onPage }) {
       key={p}
       onClick={() => onPage(p)}
       style={{
-        minWidth:34, height:34, borderRadius:9, border:'none', padding:'0 6px',
+        minWidth:34, height:34, borderRadius:9, padding:'0 6px',
         background: p === page ? '#c17f3c' : '#fff',
         color: p === page ? '#fff' : '#5a4a3a',
         fontWeight: p === page ? 700 : 500, fontSize:13, cursor:'pointer',
@@ -473,7 +473,7 @@ export default function Dashboard() {
   // ── CASH WITHDRAWAL SECTION ───────────────────────────────────────────────
   if (activeSection === 'cash') {
     return (
-      <div style={{ height:'100%', overflowY:'auto', background:'#f8f5f0', padding:'clamp(12px,3vw,20px)', fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ height:'100%', overflowY:'auto', background:'#f8f5f0', padding:'12px 12px 70px', fontFamily:"'DM Sans',sans-serif" }}>
         <BackButton onBack={() => setActiveSection(null)} title="💵 Cash Withdrawal" />
         {loading ? (
           <div style={{ textAlign:'center', paddingTop:60, color:'#c9a96e', fontSize:36 }}>⏳</div>
@@ -525,7 +525,7 @@ export default function Dashboard() {
                           <div style={{ display:'flex', alignItems:'center', background:'#fff', border:`1.5px solid ${color}40`, borderRadius:10, overflow:'hidden' }}>
                             <span style={{ color:'#c9a96e', fontSize:14, padding:'0 10px', fontWeight:700, borderRight:`1px solid ${color}20` }}>₹</span>
                             <input type="number" value={cashInputs[person]} onChange={e => setCashInputs(p => ({ ...p, [person]: e.target.value }))} placeholder="Amount..."
-                              style={{ flex:1, background:'transparent', border:'none', outline:'none', color:'#3d1a00', fontSize:14, fontFamily:"'DM Sans',sans-serif", padding:'10px' }} />
+                              style={{ flex:1, background:'transparent', border:'none', outline:'none', color:'#3d1a00', fontSize:14, fontFamily:"'DM Sans',sans-serif", padding:'10px', width:'100%' }} />
                           </div>
                           <input type="text" value={cashNotes[person]} onChange={e => setCashNotes(p => ({ ...p, [person]: e.target.value }))} placeholder="Note (optional)"
                             style={{ background:'#fff', border:`1.5px solid ${color}30`, borderRadius:10, outline:'none', color:'#7a6a5a', fontSize:12, fontFamily:"'DM Sans',sans-serif", padding:'8px 12px' }} />
