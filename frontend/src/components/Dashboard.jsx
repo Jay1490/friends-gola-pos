@@ -385,7 +385,7 @@ export default function Dashboard() {
   // ── STATEMENTS SECTION ────────────────────────────────────────────────────
   if (activeSection === 'statements') {
     return (
-      <div style={{ height:'100%', overflowY:'auto', background:'#f8f5f0', padding:'clamp(12px,3vw,20px)', fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ height:'100%', overflowY:'auto', background:'#f8f5f0', padding:'12px 12px 70px', fontFamily:"'DM Sans',sans-serif" }}>
         <BackButton onBack={() => setActiveSection(null)} title="📊 Statements" />
         {loading ? (
           <div style={{ textAlign:'center', paddingTop:60, color:'#c9a96e', fontSize:36 }}>⏳</div>
