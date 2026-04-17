@@ -252,8 +252,11 @@ export default function Dashboard() {
     acc[p] = withdrawals.filter(w => w.person === p).reduce((s,w) => s+w.amount, 0);
     return acc;
   }, {});
+  const cashBoxExpenses = expenses
+  .filter(e => (e.paidBy || 'JP') === 'CashBox')
+  .reduce((s, e) => s + e.amount, 0);
   const totalWithdrawn = Object.values(wByPerson).reduce((s,v) => s+v, 0);
-  const cashRemaining  = cashIncome - totalWithdrawn;
+  const cashRemaining = cashIncome - totalWithdrawn - cashBoxExpenses;
 
   const perPersonTotal = PAYERS.reduce((acc, p) => {
     const upi  = ownerOnlineIncome[p]?.total || 0;
