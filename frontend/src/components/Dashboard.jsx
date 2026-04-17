@@ -326,6 +326,13 @@ export default function Dashboard() {
   const saveExpense = async () => {
     if (!fTitle.trim()) return toast.error('Title is required');
     if (!fAmount || isNaN(fAmount) || Number(fAmount) <= 0) return toast.error('Enter a valid amount');
+    if (fPaidBy === 'CashBox') {
+    const amt = Number(fAmount);
+
+    if (cashRemaining - amt < 0) {
+      return toast.error(`❌ Exceeds cash balance of ${fc(cashRemaining)}`);
+      }
+    }
     setSavingExp(true);
     try {
       const payload = { title:fTitle, amount:Number(fAmount), category:fCategory, note:fNote, date:fDate, paidBy:fPaidBy };
@@ -477,7 +484,9 @@ export default function Dashboard() {
   if (activeSection === 'cash') {
     return (
       <div style={{ height:'100%', overflowY:'auto', background:'#f8f5f0', padding:'12px 12px 70px', fontFamily:"'DM Sans',sans-serif" }}>
-        <BackButton onBack={() => setActiveSection(null)} title="💵 Cash Withdrawal" />
+        <BackButton onBack={() => 
+          
+          (null)} title="💵 Cash Withdrawal" />
         {loading ? (
           <div style={{ textAlign:'center', paddingTop:60, color:'#c9a96e', fontSize:36 }}>⏳</div>
         ) : (
